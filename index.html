@@ -238,6 +238,110 @@
             font-size: 14px;
         }
         
+        .headline {
+            font-size: 16px;
+            color: #fbbf24;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        
+        .metrics-bars {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .metric-bar {
+            width: 100%;
+        }
+        
+        .metric-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #c4b5fd;
+            margin-bottom: 4px;
+        }
+        
+        .metric-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .metric-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .metric-fill.stability {
+            background: linear-gradient(90deg, #ef4444, #facc15, #4ade80);
+        }
+        
+        .metric-fill.consistency {
+            background: linear-gradient(90deg, #f472b6, #a78bfa);
+        }
+        
+        .metric-fill.breath {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+        }
+        
+        .metric-fill.vibrato {
+            background: linear-gradient(90deg, #fbbf24, #f97316);
+        }
+        
+        .feedback-section {
+            margin-bottom: 16px;
+        }
+        
+        .feedback-section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #e9d5ff;
+        }
+        
+        .feedback-section.tips {
+            background: rgba(74, 222, 128, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        
+        .feedback-section.secrets {
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .tip-item, .secret-item {
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tip-item:last-child, .secret-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .tip-item:first-child, .secret-item:first-child {
+            padding-top: 0;
+        }
+        
+        .song-section.stretch .song-card { 
+            background: rgba(249, 115, 22, 0.15); 
+        }
+        
         .song-section {
             margin-bottom: 16px;
         }
@@ -250,7 +354,14 @@
         
         .song-section.perfect h3 { color: #4ade80; }
         .song-section.good h3 { color: #facc15; }
+        .song-section.stretch h3 { color: #f97316; }
         .song-section.crowd h3 { color: #f472b6; }
+        
+        .section-subtitle {
+            font-size: 12px;
+            color: #a78bfa;
+            margin: -4px 0 10px 0;
+        }
         
         .song-card {
             padding: 12px;
@@ -834,39 +945,179 @@
             return 12 * Math.log2(freq / 440) + 69;
         }
 
+        // Improved YIN-based pitch detection algorithm
         function detectPitch(buffer, sampleRate) {
             const SIZE = buffer.length;
-            const MAX_SAMPLES = Math.floor(SIZE / 2);
-            let bestOffset = -1;
-            let bestCorrelation = 0;
+            const yinBufferSize = Math.floor(SIZE / 2);
+            const yinBuffer = new Float32Array(yinBufferSize);
+            const threshold = 0.15; // YIN threshold for pitch confidence
+            
+            // Calculate RMS for volume threshold
             let rms = 0;
-
             for (let i = 0; i < SIZE; i++) {
                 rms += buffer[i] * buffer[i];
             }
             rms = Math.sqrt(rms / SIZE);
-            if (rms < 0.01) return -1;
-
-            let lastCorrelation = 1;
-            for (let offset = 50; offset < MAX_SAMPLES; offset++) {
-                let correlation = 0;
-                for (let i = 0; i < MAX_SAMPLES; i++) {
-                    correlation += Math.abs(buffer[i] - buffer[i + offset]);
+            if (rms < 0.008) return { freq: -1, confidence: 0 }; // Too quiet
+            
+            // Step 1: Calculate difference function
+            for (let tau = 0; tau < yinBufferSize; tau++) {
+                yinBuffer[tau] = 0;
+                for (let i = 0; i < yinBufferSize; i++) {
+                    const delta = buffer[i] - buffer[i + tau];
+                    yinBuffer[tau] += delta * delta;
                 }
-                correlation = 1 - (correlation / MAX_SAMPLES);
-                if (correlation > 0.9 && correlation > lastCorrelation) {
-                    if (correlation > bestCorrelation) {
-                        bestCorrelation = correlation;
-                        bestOffset = offset;
+            }
+            
+            // Step 2: Cumulative mean normalized difference
+            yinBuffer[0] = 1;
+            let runningSum = 0;
+            for (let tau = 1; tau < yinBufferSize; tau++) {
+                runningSum += yinBuffer[tau];
+                yinBuffer[tau] *= tau / runningSum;
+            }
+            
+            // Step 3: Absolute threshold - find first dip below threshold
+            let tauEstimate = -1;
+            for (let tau = 2; tau < yinBufferSize; tau++) {
+                if (yinBuffer[tau] < threshold) {
+                    while (tau + 1 < yinBufferSize && yinBuffer[tau + 1] < yinBuffer[tau]) {
+                        tau++;
                     }
+                    tauEstimate = tau;
+                    break;
                 }
-                lastCorrelation = correlation;
             }
-
-            if (bestCorrelation > 0.01 && bestOffset > -1) {
-                return sampleRate / bestOffset;
+            
+            // No pitch found
+            if (tauEstimate === -1) return { freq: -1, confidence: 0 };
+            
+            // Step 4: Parabolic interpolation for better precision
+            let betterTau;
+            const x0 = tauEstimate < 1 ? tauEstimate : tauEstimate - 1;
+            const x2 = tauEstimate + 1 < yinBufferSize ? tauEstimate + 1 : tauEstimate;
+            
+            if (x0 === tauEstimate) {
+                betterTau = yinBuffer[tauEstimate] <= yinBuffer[x2] ? tauEstimate : x2;
+            } else if (x2 === tauEstimate) {
+                betterTau = yinBuffer[tauEstimate] <= yinBuffer[x0] ? tauEstimate : x0;
+            } else {
+                const s0 = yinBuffer[x0];
+                const s1 = yinBuffer[tauEstimate];
+                const s2 = yinBuffer[x2];
+                betterTau = tauEstimate + (s2 - s0) / (2 * (2 * s1 - s2 - s0));
             }
-            return -1;
+            
+            const freq = sampleRate / betterTau;
+            const confidence = 1 - yinBuffer[tauEstimate];
+            
+            // Filter unreasonable frequencies (human voice range ~80Hz to ~1100Hz)
+            if (freq < 75 || freq > 1200) return { freq: -1, confidence: 0 };
+            
+            return { freq, confidence };
+        }
+        
+        // Track pitch samples with confidence and timing
+        let pitchSamples = []; // { midi, confidence, timestamp }
+        
+        // Advanced analysis functions
+        function calculateAdvancedMetrics(samples) {
+            if (samples.length < 20) return null;
+            
+            // Filter by confidence
+            const confident = samples.filter(s => s.confidence > 0.7);
+            if (confident.length < 10) return null;
+            
+            const midiValues = confident.map(s => s.midi);
+            
+            // IQR-based outlier removal
+            const sorted = [...midiValues].sort((a, b) => a - b);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)];
+            const q3 = sorted[Math.floor(sorted.length * 0.75)];
+            const iqr = q3 - q1;
+            const lowerBound = q1 - 1.5 * iqr;
+            const upperBound = q3 + 1.5 * iqr;
+            const filtered = midiValues.filter(m => m >= lowerBound && m <= upperBound);
+            
+            if (filtered.length < 10) return null;
+            
+            // Core metrics
+            const minMidi = Math.min(...filtered);
+            const maxMidi = Math.max(...filtered);
+            const avgMidi = filtered.reduce((a, b) => a + b, 0) / filtered.length;
+            const range = maxMidi - minMidi;
+            
+            // Find "comfortable" range (middle 60% of notes sung)
+            const comfortSorted = [...filtered].sort((a, b) => a - b);
+            const comfortStart = Math.floor(comfortSorted.length * 0.2);
+            const comfortEnd = Math.floor(comfortSorted.length * 0.8);
+            const comfortZone = comfortSorted.slice(comfortStart, comfortEnd);
+            const comfortLow = Math.min(...comfortZone);
+            const comfortHigh = Math.max(...comfortZone);
+            
+            // Stability: standard deviation of pitch
+            const variance = filtered.reduce((sum, n) => sum + Math.pow(n - avgMidi, 2), 0) / filtered.length;
+            const stdDev = Math.sqrt(variance);
+            const stability = Math.max(0, Math.min(100, 100 - stdDev * 8));
+            
+            // Pitch consistency: how often they hit intended notes (measured by clustering)
+            const noteGroups = {};
+            filtered.forEach(m => {
+                const roundedNote = Math.round(m);
+                noteGroups[roundedNote] = (noteGroups[roundedNote] || 0) + 1;
+            });
+            const totalNotes = filtered.length;
+            const dominantNotes = Object.values(noteGroups).sort((a, b) => b - a).slice(0, 5);
+            const consistency = Math.min(100, (dominantNotes.reduce((a, b) => a + b, 0) / totalNotes) * 100);
+            
+            // Detect vibrato (pitch oscillation patterns)
+            let vibratoCount = 0;
+            const windowSize = 10;
+            for (let i = windowSize; i < filtered.length - windowSize; i++) {
+                const before = filtered.slice(i - windowSize, i);
+                const after = filtered.slice(i, i + windowSize);
+                const beforeAvg = before.reduce((a, b) => a + b, 0) / before.length;
+                const afterAvg = after.reduce((a, b) => a + b, 0) / after.length;
+                if (Math.abs(filtered[i] - beforeAvg) > 0.3 && Math.abs(filtered[i] - afterAvg) > 0.3) {
+                    vibratoCount++;
+                }
+            }
+            const vibratoPresence = Math.min(100, (vibratoCount / filtered.length) * 500);
+            
+            // Breath control estimate (consistency over time segments)
+            const segmentSize = Math.floor(confident.length / 4);
+            const segments = [];
+            for (let i = 0; i < 4; i++) {
+                const seg = confident.slice(i * segmentSize, (i + 1) * segmentSize);
+                if (seg.length > 0) {
+                    const segAvgConf = seg.reduce((a, b) => a + b.confidence, 0) / seg.length;
+                    segments.push(segAvgConf);
+                }
+            }
+            const breathControl = segments.length > 0 
+                ? Math.min(100, (segments.reduce((a, b) => a + b, 0) / segments.length) * 110)
+                : 50;
+            
+            // Determine voice type with more nuance
+            let voiceType, voiceEmoji;
+            if (avgMidi < 46) { voiceType = 'Bass'; voiceEmoji = '🎸'; }
+            else if (avgMidi < 51) { voiceType = 'Baritone'; voiceEmoji = '🎷'; }
+            else if (avgMidi < 56) { voiceType = 'Tenor'; voiceEmoji = '🎺'; }
+            else if (avgMidi < 61) { voiceType = 'Alto'; voiceEmoji = '🎻'; }
+            else if (avgMidi < 66) { voiceType = 'Mezzo-Soprano'; voiceEmoji = '🎹'; }
+            else { voiceType = 'Soprano'; voiceEmoji = '✨'; }
+            
+            return {
+                minMidi, maxMidi, avgMidi, range,
+                comfortLow, comfortHigh,
+                stability: Math.round(stability),
+                consistency: Math.round(consistency),
+                vibratoPresence: Math.round(vibratoPresence),
+                breathControl: Math.round(breathControl),
+                voiceType, voiceEmoji,
+                sampleCount: filtered.length,
+                confidentSamples: confident.length
+            };
         }
 
         function showError(message) {
@@ -882,6 +1133,7 @@
             try {
                 errorContainer.innerHTML = '';
                 pitches = [];
+                pitchSamples = [];
                 recordingTime = 0;
 
                 stream = await navigator.mediaDevices.getUserMedia({
@@ -943,12 +1195,17 @@
                 bar.style.height = `${Math.max(4, value * 100)}%`;
             });
 
-            // Detect pitch
-            const pitch = detectPitch(buffer, audioContext.sampleRate);
-            if (pitch > 60 && pitch < 1200) {
-                const midi = freqToMidi(pitch);
-                pitches.push(midi);
-                sampleCount.textContent = `${pitches.length} samples`;
+            // Detect pitch with confidence
+            const result = detectPitch(buffer, audioContext.sampleRate);
+            if (result.freq > 0 && result.confidence > 0.5) {
+                const midi = freqToMidi(result.freq);
+                pitchSamples.push({
+                    midi,
+                    confidence: result.confidence,
+                    timestamp: Date.now()
+                });
+                pitches.push(midi); // Keep for backward compatibility
+                sampleCount.textContent = `${pitchSamples.length} samples (${Math.round(result.confidence * 100)}% conf)`;
             }
 
             animationId = requestAnimationFrame(detectLoop);
@@ -969,7 +1226,7 @@
         }
 
         function analyzeVoice() {
-            if (pitches.length < 10) {
+            if (pitchSamples.length < 20) {
                 analyzing.style.display = 'none';
                 recordSection.style.display = 'block';
                 instructions.style.display = 'block';
@@ -979,63 +1236,197 @@
                 recordBtn.textContent = '🎤';
                 btnHint.textContent = 'Tap to start';
                 bars.forEach(bar => bar.style.height = '4px');
-                showError('Not enough vocal data. Please sing louder and longer (at least 5 seconds).');
+                showError('Not enough vocal data. Sing louder and longer — we need at least 5 seconds of actual singing, not just breathing into the mic! 🎤');
                 return;
             }
 
-            const sorted = [...pitches].sort((a, b) => a - b);
-            const trimStart = Math.floor(sorted.length * 0.1);
-            const trimEnd = Math.floor(sorted.length * 0.9);
-            const trimmed = sorted.slice(trimStart, trimEnd);
+            const metrics = calculateAdvancedMetrics(pitchSamples);
+            
+            if (!metrics) {
+                analyzing.style.display = 'none';
+                recordSection.style.display = 'block';
+                instructions.style.display = 'block';
+                status.style.display = 'none';
+                timer.style.display = 'none';
+                recordBtn.className = 'record-btn ready';
+                recordBtn.textContent = '🎤';
+                btnHint.textContent = 'Tap to start';
+                bars.forEach(bar => bar.style.height = '4px');
+                showError('Could not analyze your voice clearly. Try singing more sustained notes (less talking, more "ahhh"). Move closer to the mic!');
+                return;
+            }
 
-            const minMidi = Math.min(...trimmed);
-            const maxMidi = Math.max(...trimmed);
-            const avgMidi = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
-            const range = maxMidi - minMidi;
-
-            const variance = trimmed.reduce((sum, n) => sum + Math.pow(n - avgMidi, 2), 0) / trimmed.length;
-            const stability = Math.max(0, Math.min(100, 100 - Math.sqrt(variance) * 5));
-
-            let voiceType;
-            if (avgMidi < 48) voiceType = 'Bass';
-            else if (avgMidi < 53) voiceType = 'Baritone';
-            else if (avgMidi < 58) voiceType = 'Tenor';
-            else if (avgMidi < 63) voiceType = 'Alto';
-            else if (avgMidi < 68) voiceType = 'Mezzo-Soprano';
-            else voiceType = 'Soprano';
-
-            // Score songs
+            // Score songs using comfort zone for better matches
             const scored = SONG_DATABASE.map(song => {
                 const songRange = song.maxNote - song.minNote;
-                const overlap = Math.min(maxMidi, song.maxNote) - Math.max(minMidi, song.minNote);
-                const fit = Math.max(0, overlap / songRange);
-                const exceedsLow = Math.max(0, song.minNote - minMidi);
-                const exceedsHigh = Math.max(0, maxMidi - song.maxNote);
-                const penalty = (exceedsLow + exceedsHigh) * 2;
-                const bonus = stability < 50 && song.difficulty === 'easy' ? 20 : 0;
-                return { ...song, score: fit * 100 - penalty + bonus };
+                
+                // Primary: how well does the song fit in their COMFORTABLE range
+                const comfortOverlap = Math.min(metrics.comfortHigh, song.maxNote) - Math.max(metrics.comfortLow, song.minNote);
+                const comfortFit = Math.max(0, comfortOverlap / songRange);
+                
+                // Secondary: can they technically hit all the notes?
+                const fullOverlap = Math.min(metrics.maxMidi, song.maxNote) - Math.max(metrics.minMidi, song.minNote);
+                const fullFit = Math.max(0, fullOverlap / songRange);
+                
+                // Penalties for notes outside their range
+                const exceedsLow = Math.max(0, song.minNote - metrics.minMidi);
+                const exceedsHigh = Math.max(0, song.maxNote - metrics.maxMidi);
+                const rangePenalty = (exceedsLow + exceedsHigh) * 3;
+                
+                // Difficulty adjustment based on stability
+                let difficultyBonus = 0;
+                if (metrics.stability < 40 && song.difficulty === 'easy') difficultyBonus = 25;
+                else if (metrics.stability > 70 && song.difficulty === 'hard') difficultyBonus = 10;
+                else if (metrics.stability < 60 && song.difficulty === 'hard') difficultyBonus = -20;
+                
+                // Consistency bonus - if they're consistent, they can handle trickier songs
+                const consistencyBonus = metrics.consistency > 70 ? 10 : 0;
+                
+                const score = (comfortFit * 70) + (fullFit * 30) - rangePenalty + difficultyBonus + consistencyBonus;
+                
+                return { ...song, score };
             }).sort((a, b) => b.score - a.score);
 
-            const perfect = scored.filter(s => s.score > 70).slice(0, 4);
-            const good = scored.filter(s => s.score > 40 && s.score <= 70).slice(0, 4);
-            const crowd = SONG_DATABASE.filter(s => s.difficulty === 'easy').slice(0, 3);
+            const perfect = scored.filter(s => s.score > 65).slice(0, 5);
+            const good = scored.filter(s => s.score > 35 && s.score <= 65).slice(0, 4);
+            const stretch = scored.filter(s => s.difficulty === 'hard' && s.score > 20).slice(0, 3);
+            const crowd = SONG_DATABASE.filter(s => s.difficulty === 'easy')
+                .sort(() => Math.random() - 0.5).slice(0, 3);
 
-            let assessment;
-            if (stability > 70) assessment = '🌟 Solid pitch control! Go for challenging songs.';
-            else if (stability > 40) assessment = '🎯 Good foundation! Stick to your comfort zone.';
-            else assessment = '🎉 Pick crowd-pleasers and own the stage!';
+            // Generate personality-filled feedback
+            const feedback = generateFeedback(metrics);
 
             showResults({
-                voiceType,
-                minNote: midiToNoteName(Math.round(minMidi)),
-                maxNote: midiToNoteName(Math.round(maxMidi)),
-                range: Math.round(range),
-                stability: Math.round(stability),
-                perfect: perfect.length > 0 ? perfect : scored.slice(0, 4),
+                metrics,
+                minNote: midiToNoteName(Math.round(metrics.minMidi)),
+                maxNote: midiToNoteName(Math.round(metrics.maxMidi)),
+                comfortLow: midiToNoteName(Math.round(metrics.comfortLow)),
+                comfortHigh: midiToNoteName(Math.round(metrics.comfortHigh)),
+                perfect: perfect.length > 0 ? perfect : scored.slice(0, 5),
                 good,
+                stretch,
                 crowd,
-                assessment
+                feedback
             });
+        }
+        
+        function generateFeedback(m) {
+            const feedback = {
+                headline: '',
+                assessment: '',
+                tips: [],
+                secrets: []
+            };
+            
+            // Snarky headlines based on overall profile
+            const headlines = {
+                amazing: [
+                    "Well, well... someone's been practicing in the shower! 🚿",
+                    "Did you swallow a nightingale? Because damn. 🐦",
+                    "Your neighbors either love you or have noise-canceling headphones.",
+                    "Okay, show-off. Let's find you some bangers."
+                ],
+                good: [
+                    "Not bad! You won't clear the room... probably.",
+                    "Solid! You're karaoke-ready, not American Idol-ready. And that's fine!",
+                    "Hey, you can carry a tune! The bar is low and you cleared it.",
+                    "You've got potential! With the right song, you'll be a legend."
+                ],
+                developing: [
+                    "Let's call this... 'character.' You've got character. 🎭",
+                    "The good news: confidence matters more than pitch at karaoke.",
+                    "Your voice has... personality! Let's work with that.",
+                    "Some people sing. You perform. Let's lean into that."
+                ],
+                rough: [
+                    "Okay, here's the deal: we're gonna find you songs where vibes > vocals.",
+                    "Your voice is unique! Like a fingerprint. That no one asked for. But we'll make it work!",
+                    "Good news: karaoke is 70% confidence, 20% alcohol, 10% talent. You've got this.",
+                    "The mic is your friend. Hold it close. Very close. It hides things."
+                ]
+            };
+            
+            // Pick headline based on combined score
+            const overallScore = (m.stability + m.consistency + m.breathControl) / 3;
+            let tier;
+            if (overallScore > 75) tier = 'amazing';
+            else if (overallScore > 55) tier = 'good';
+            else if (overallScore > 35) tier = 'developing';
+            else tier = 'rough';
+            
+            feedback.headline = headlines[tier][Math.floor(Math.random() * headlines[tier].length)];
+            
+            // Assessment based on voice type and range
+            const rangeComments = {
+                tiny: `${m.range} semitones? That's like... less than an octave. We'll find you some talky songs.`,
+                small: `${m.range} semitones — a cozy little range. Nothing wrong with staying in your lane!`,
+                medium: `${m.range} semitones — solid range! Most pop songs are yours for the taking.`,
+                large: `${m.range} semitones?! You've got pipes! Time for the showstoppers.`,
+                huge: `${m.range} semitones — okay Mariah, calm down. Let's put that range to work!`
+            };
+            
+            let rangeCategory;
+            if (m.range < 8) rangeCategory = 'tiny';
+            else if (m.range < 12) rangeCategory = 'small';
+            else if (m.range < 18) rangeCategory = 'medium';
+            else if (m.range < 24) rangeCategory = 'large';
+            else rangeCategory = 'huge';
+            
+            feedback.assessment = `${m.voiceEmoji} **${m.voiceType}** · ${rangeComments[rangeCategory]}`;
+            
+            // Generate tips based on weaknesses
+            if (m.stability < 40) {
+                feedback.tips.push("🎯 **Pitch wobbles detected.** Pick songs with narrow melodies. Talk-singing is your friend — think Lou Reed, not Celine Dion.");
+                feedback.tips.push("💡 **Pro tip:** Focus on ONE note at a time. Don't think about the next line until you nail the current one.");
+            } else if (m.stability < 60) {
+                feedback.tips.push("🎯 **Your pitch is decent but drifts.** Songs with strong rhythms help you stay on track — your body keeps time even when your voice wanders.");
+            } else {
+                feedback.tips.push("🎯 **Nice pitch control!** You can handle melodic songs. Don't be afraid to add some style.");
+            }
+            
+            if (m.breathControl < 50) {
+                feedback.tips.push("🌬️ **Breath support could use work.** Avoid songs with long held notes. Look for songs with natural pauses.");
+                feedback.secrets.push("Sneak breaths during instrumental breaks. No one's judging your breathing technique at karaoke.");
+            }
+            
+            if (m.consistency < 50) {
+                feedback.tips.push("🎪 **You're all over the place** — but hey, that's energy! Channel it into crowd-pleasers where enthusiasm beats precision.");
+            }
+            
+            if (m.vibratoPresence > 60) {
+                feedback.tips.push("〰️ **Natural vibrato detected!** Use it on held notes for that professional sound. Very fancy.");
+            } else if (m.vibratoPresence < 20 && m.stability > 50) {
+                feedback.secrets.push("No vibrato? That's fine — a clean, straight tone works great for modern pop. Own it.");
+            }
+            
+            // Voice-type specific tips
+            const voiceTips = {
+                'Bass': "🎸 Deep voices are RARE at karaoke. You'll stand out just by existing. Johnny Cash, Elvis, and anything country is your wheelhouse.",
+                'Baritone': "🎷 The most versatile male range! You can go up OR down. Classic rock and soul were made for you.",
+                'Tenor': "🎺 High male voices get all the fun songs, but also all the hard songs. Know your limits or you'll be squeaking by the second chorus.",
+                'Alto': "🎻 Rich, warm tones! You're the backbone of any choir. Amy Winehouse, Adele's lower stuff, and indie rock are calling your name.",
+                'Mezzo-Soprano': "🎹 The Goldilocks zone — not too high, not too low. Most female pop songs are written for you. Lucky!",
+                'Soprano': "✨ Sky-high range! Just because you CAN hit those notes doesn't mean every song needs them. Save the fireworks for the finale."
+            };
+            feedback.tips.push(voiceTips[m.voiceType]);
+            
+            // Fake-it-til-you-make-it secrets
+            feedback.secrets.push("🤫 **The Talk-Sing:** When a note is too high, just... talk it rhythmically. Bob Dylan made a career of this.");
+            feedback.secrets.push("🎤 **Mic Technique:** Eat the mic on quiet parts, pull back on loud parts. Sounds more dynamic than you actually are.");
+            feedback.secrets.push("👥 **Crowd Work:** Point at the audience during the chorus. They'll sing along and cover your mistakes.");
+            
+            if (m.stability < 50) {
+                feedback.secrets.push("🍺 **The Sweet Spot:** One drink loosens you up. Three drinks and you stop caring. Find your number.");
+            }
+            
+            if (m.range < 12) {
+                feedback.secrets.push("🔑 **Key Change Hack:** Most karaoke machines let you adjust the key. Down 2-3 semitones can save your life.");
+            }
+            
+            feedback.secrets.push("📱 **The Lyrics Trick:** Glance at your phone for lyrics during the intro. No one will know.");
+            feedback.secrets.push("🎭 **Confidence > Competence:** Move around! Dance badly! A boring good singer loses to an entertaining bad one EVERY time.");
+            
+            return feedback;
         }
 
         function showResults(data) {
@@ -1051,7 +1442,7 @@
                 </div>
             `).join('');
 
-            let goodHtml = data.good.map(s => `
+            let goodHtml = data.good.length > 0 ? data.good.map(s => `
                 <div class="song-card">
                     <div class="song-info">
                         <div class="title">${s.title}</div>
@@ -1059,7 +1450,17 @@
                     </div>
                     <span class="difficulty ${s.difficulty}">${s.difficulty}</span>
                 </div>
-            `).join('');
+            `).join('') : '';
+
+            let stretchHtml = data.stretch && data.stretch.length > 0 ? data.stretch.map(s => `
+                <div class="song-card">
+                    <div class="song-info">
+                        <div class="title">${s.title}</div>
+                        <div class="artist">${s.artist}</div>
+                    </div>
+                    <span class="difficulty ${s.difficulty}">${s.difficulty}</span>
+                </div>
+            `).join('') : '';
 
             let crowdHtml = data.crowd.map(s => `
                 <div class="song-card">
@@ -1067,51 +1468,120 @@
                         <div class="title">${s.title}</div>
                         <div class="artist">${s.artist}</div>
                     </div>
+                    <span class="difficulty ${s.difficulty || 'easy'}">${s.difficulty || 'easy'}</span>
                 </div>
             `).join('');
+            
+            let tipsHtml = data.feedback.tips.map(tip => `<div class="tip-item">${tip}</div>`).join('');
+            let secretsHtml = data.feedback.secrets.slice(0, 4).map(secret => `<div class="secret-item">${secret}</div>`).join('');
 
             results.innerHTML = `
                 <div class="profile">
+                    <div class="headline">${data.feedback.headline}</div>
                     <h2>Your Voice Profile</h2>
                     <div class="profile-grid">
                         <div class="profile-item">
                             <label>Voice Type</label>
-                            <div class="value">${data.voiceType}</div>
+                            <div class="value">${data.metrics.voiceEmoji} ${data.metrics.voiceType}</div>
                         </div>
                         <div class="profile-item">
-                            <label>Range</label>
+                            <label>Full Range</label>
                             <div class="value">${data.minNote} → ${data.maxNote}</div>
                         </div>
                         <div class="profile-item">
-                            <label>Span</label>
-                            <div class="value">${data.range} semitones</div>
+                            <label>Comfort Zone</label>
+                            <div class="value">${data.comfortLow} → ${data.comfortHigh}</div>
                         </div>
                         <div class="profile-item">
-                            <label>Stability</label>
-                            <div class="value">${data.stability}%</div>
+                            <label>Range Span</label>
+                            <div class="value">${data.metrics.range} semitones</div>
                         </div>
                     </div>
-                    <div class="assessment">${data.assessment}</div>
+                    
+                    <div class="metrics-bars">
+                        <div class="metric-bar">
+                            <div class="metric-label">
+                                <span>Pitch Stability</span>
+                                <span>${data.metrics.stability}%</span>
+                            </div>
+                            <div class="metric-track">
+                                <div class="metric-fill stability" style="width: ${data.metrics.stability}%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-label">
+                                <span>Consistency</span>
+                                <span>${data.metrics.consistency}%</span>
+                            </div>
+                            <div class="metric-track">
+                                <div class="metric-fill consistency" style="width: ${data.metrics.consistency}%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-label">
+                                <span>Breath Control</span>
+                                <span>${data.metrics.breathControl}%</span>
+                            </div>
+                            <div class="metric-track">
+                                <div class="metric-fill breath" style="width: ${data.metrics.breathControl}%"></div>
+                            </div>
+                        </div>
+                        ${data.metrics.vibratoPresence > 30 ? `
+                        <div class="metric-bar">
+                            <div class="metric-label">
+                                <span>Vibrato</span>
+                                <span>${data.metrics.vibratoPresence}%</span>
+                            </div>
+                            <div class="metric-track">
+                                <div class="metric-fill vibrato" style="width: ${data.metrics.vibratoPresence}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="assessment">${data.feedback.assessment}</div>
+                </div>
+                
+                <div class="feedback-section tips">
+                    <h3>💡 Tips For You</h3>
+                    ${tipsHtml}
                 </div>
 
                 <div class="song-section perfect">
                     <h3>🎯 Perfect Matches</h3>
+                    <p class="section-subtitle">These songs fit your comfortable range like a glove</p>
                     ${perfectHtml}
                 </div>
 
-                ${data.good.length > 0 ? `
+                ${goodHtml ? `
                 <div class="song-section good">
-                    <h3>👍 Also Good</h3>
+                    <h3>👍 Also Great</h3>
+                    <p class="section-subtitle">Might need to reach a bit, but totally doable</p>
                     ${goodHtml}
+                </div>
+                ` : ''}
+                
+                ${stretchHtml ? `
+                <div class="song-section stretch">
+                    <h3>🔥 Challenge Mode</h3>
+                    <p class="section-subtitle">Feeling bold? These will test you</p>
+                    ${stretchHtml}
                 </div>
                 ` : ''}
 
                 <div class="song-section crowd">
                     <h3>🍻 Crowd Pleasers</h3>
+                    <p class="section-subtitle">When in doubt, these never fail</p>
                     ${crowdHtml}
                 </div>
+                
+                <div class="feedback-section secrets">
+                    <h3>🤫 Fake It Tips</h3>
+                    <p class="section-subtitle">Between us... here's how to sound better than you are</p>
+                    ${secretsHtml}
+                </div>
 
-                <button class="reset-btn" onclick="resetApp()">🔄 Try Again</button>
+                <button class="reset-btn" onclick="resetApp()">🔄 Analyze Again</button>
             `;
 
             results.className = 'results show';
@@ -1119,6 +1589,7 @@
 
         function resetApp() {
             pitches = [];
+            pitchSamples = [];
             recordingTime = 0;
             isRecording = false;
             
