@@ -249,6 +249,133 @@
             border: 1px solid rgba(251, 191, 36, 0.3);
         }
         
+        .suck-meter-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .suck-meter-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .suck-meter-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #a78bfa;
+            text-transform: uppercase;
+        }
+        
+        .suck-meter-emoji {
+            font-size: 24px;
+        }
+        
+        .suck-score-display {
+            margin: 8px 0;
+        }
+        
+        .suck-score {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .suck-max {
+            font-size: 24px;
+            color: #6b7280;
+            font-weight: 400;
+        }
+        
+        .suck-label {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .suck-meter-track {
+            position: relative;
+            height: 12px;
+            border-radius: 6px;
+            overflow: visible;
+            margin: 0 10px;
+        }
+        
+        .suck-meter-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, 
+                #4ade80 0%, 
+                #a3e635 15%, 
+                #facc15 30%, 
+                #fb923c 45%, 
+                #f97316 60%, 
+                #ef4444 75%, 
+                #dc2626 90%, 
+                #be123c 100%
+            );
+            border-radius: 6px;
+        }
+        
+        .suck-meter-needle {
+            position: absolute;
+            top: -6px;
+            width: 4px;
+            height: 24px;
+            background: white;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            transition: left 0.5s ease-out;
+        }
+        
+        .suck-meter-needle::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid white;
+        }
+        
+        .suck-meter-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .suck-description {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #e9d5ff;
+            font-style: italic;
+            line-height: 1.5;
+        }
+        
         .metrics-bars {
             margin-top: 16px;
             display: flex;
@@ -1315,46 +1442,94 @@
                 headline: '',
                 assessment: '',
                 tips: [],
-                secrets: []
+                secrets: [],
+                suckScore: 0,
+                suckLabel: '',
+                suckDescription: ''
             };
             
-            // Snarky headlines based on overall profile
-            const headlines = {
-                amazing: [
-                    "Well, well... someone's been practicing in the shower! 🚿",
-                    "Did you swallow a nightingale? Because damn. 🐦",
-                    "Your neighbors either love you or have noise-canceling headphones.",
-                    "Okay, show-off. Let's find you some bangers."
-                ],
-                good: [
-                    "Not bad! You won't clear the room... probably.",
-                    "Solid! You're karaoke-ready, not American Idol-ready. And that's fine!",
-                    "Hey, you can carry a tune! The bar is low and you cleared it.",
-                    "You've got potential! With the right song, you'll be a legend."
-                ],
-                developing: [
-                    "Let's call this... 'character.' You've got character. 🎭",
-                    "The good news: confidence matters more than pitch at karaoke.",
-                    "Your voice has... personality! Let's work with that.",
-                    "Some people sing. You perform. Let's lean into that."
-                ],
-                rough: [
-                    "Okay, here's the deal: we're gonna find you songs where vibes > vocals.",
-                    "Your voice is unique! Like a fingerprint. That no one asked for. But we'll make it work!",
-                    "Good news: karaoke is 70% confidence, 20% alcohol, 10% talent. You've got this.",
-                    "The mic is your friend. Hold it close. Very close. It hides things."
-                ]
-            };
+            // ========== THE SUCK METER ==========
+            // Calculate suck score (1 = doesn't suck, 100 = maximum suckage)
+            const qualityScore = (m.stability + m.consistency + m.breathControl) / 3;
             
-            // Pick headline based on combined score
-            const overallScore = (m.stability + m.consistency + m.breathControl) / 3;
-            let tier;
-            if (overallScore > 75) tier = 'amazing';
-            else if (overallScore > 55) tier = 'good';
-            else if (overallScore > 35) tier = 'developing';
-            else tier = 'rough';
+            // Range penalty: tiny range = more suck
+            let rangePenalty = 0;
+            if (m.range < 8) rangePenalty = 20;
+            else if (m.range < 12) rangePenalty = 10;
+            else if (m.range < 15) rangePenalty = 5;
             
-            feedback.headline = headlines[tier][Math.floor(Math.random() * headlines[tier].length)];
+            // Base suck is inverse of quality, adjusted for range
+            let rawSuck = 100 - qualityScore + rangePenalty;
+            
+            // Clamp to 1-100
+            feedback.suckScore = Math.max(1, Math.min(100, Math.round(rawSuck)));
+            
+            // Suck tiers with labels and descriptions
+            const suckTiers = [
+                { max: 5, label: "Doesn't Suck", emoji: "👑", color: "#4ade80",
+                  descriptions: [
+                    "Wait, are you a professional? What are you doing here?",
+                    "Did you get lost on your way to The Voice auditions?",
+                    "Okay, show-off. Save some talent for the rest of us.",
+                    "Your shower must have incredible acoustics... or you're actually good."
+                  ]},
+                { max: 15, label: "Barely Sucks", emoji: "⭐", color: "#a3e635",
+                  descriptions: [
+                    "Annoyingly good. People will hate you at karaoke (in the jealous way).",
+                    "You're the person everyone wants on their team for group songs.",
+                    "Genuinely impressive. Did you come here just to flex?",
+                    "The 'I don't really sing' person who then destroys everyone."
+                  ]},
+                { max: 30, label: "Sucks a Little", emoji: "✨", color: "#facc15",
+                  descriptions: [
+                    "Respectable! You can hold your own. Minor rough edges add character.",
+                    "Solidly above average. The audience will clap AND mean it.",
+                    "A few wobbly moments, but honestly? Pretty good.",
+                    "You're the friend everyone's happy to hear sing."
+                  ]},
+                { max: 45, label: "Moderately Sucks", emoji: "🎤", color: "#fb923c",
+                  descriptions: [
+                    "Welcome to the middle of the bell curve. Population: most people.",
+                    "You are the definition of 'fine.' Not great, not terrible. Fine.",
+                    "Some hits, some misses. Classic karaoke energy.",
+                    "Your enthusiasm outpaces your ability. That's not an insult — that's karaoke."
+                  ]},
+                { max: 60, label: "Kinda Sucks", emoji: "😅", color: "#f97316",
+                  descriptions: [
+                    "Let's call it 'character vocals.' You've got... character.",
+                    "Your voice has opinions that differ from the original melody.",
+                    "The spirit is willing but the pitch is weak.",
+                    "You're not tone deaf — you're tone... independent."
+                  ]},
+                { max: 75, label: "Really Sucks", emoji: "🫠", color: "#ef4444",
+                  descriptions: [
+                    "Group songs only. Safety in numbers. Hide among the talented.",
+                    "Confidence will need to do a LOT of heavy lifting here.",
+                    "The good news: nobody goes to karaoke for vocal excellence.",
+                    "Your voice is a journey. Unfortunately, it's taking wrong turns."
+                  ]},
+                { max: 90, label: "Majorly Sucks", emoji: "💀", color: "#dc2626",
+                  descriptions: [
+                    "Embrace the chaos. You're not here to impress — you're here to PERFORM.",
+                    "What you lack in ability, you must make up for in sheer audacity.",
+                    "Have you considered... interpretive dance instead?",
+                    "Every note is a surprise! Even to you, apparently."
+                  ]},
+                { max: 100, label: "Legendary Suck", emoji: "🏆", color: "#be123c",
+                  descriptions: [
+                    "So magnificently terrible it wraps around to being iconic.",
+                    "You're not bad at karaoke. Karaoke is bad at containing your energy.",
+                    "They'll remember you. Not fondly, but they WILL remember.",
+                    "Congratulations! You've achieved a level of suck few dare to reach."
+                  ]}
+            ];
+            
+            // Find the appropriate tier
+            const tier = suckTiers.find(t => feedback.suckScore <= t.max);
+            feedback.suckLabel = tier.label;
+            feedback.suckEmoji = tier.emoji;
+            feedback.suckColor = tier.color;
+            feedback.suckDescription = tier.descriptions[Math.floor(Math.random() * tier.descriptions.length)];
             
             // Assessment based on voice type and range
             const rangeComments = {
@@ -1374,57 +1549,67 @@
             
             feedback.assessment = `${m.voiceEmoji} **${m.voiceType}** · ${rangeComments[rangeCategory]}`;
             
-            // Generate tips based on weaknesses
+            // Generate "How to Suck Less" tips based on weaknesses
             if (m.stability < 40) {
-                feedback.tips.push("🎯 **Pitch wobbles detected.** Pick songs with narrow melodies. Talk-singing is your friend — think Lou Reed, not Celine Dion.");
-                feedback.tips.push("💡 **Pro tip:** Focus on ONE note at a time. Don't think about the next line until you nail the current one.");
+                feedback.tips.push("🎯 **Your pitch wanders like a tourist.** Pick songs with simple, repetitive melodies. Talk-singing is your secret weapon — think Lou Reed, not Celine Dion.");
+                feedback.tips.push("💡 **One note at a time.** Don't think about the next line until you've survived the current one.");
             } else if (m.stability < 60) {
-                feedback.tips.push("🎯 **Your pitch is decent but drifts.** Songs with strong rhythms help you stay on track — your body keeps time even when your voice wanders.");
+                feedback.tips.push("🎯 **Pitch drifts detected.** You start okay then slowly migrate to a different key. Songs with strong beats help — your body keeps time even when your voice goes walkabout.");
+            } else if (m.stability < 75) {
+                feedback.tips.push("🎯 **Mostly on pitch with occasional adventures.** You're in the 'good enough' zone — focus on song selection and showmanship.");
             } else {
-                feedback.tips.push("🎯 **Nice pitch control!** You can handle melodic songs. Don't be afraid to add some style.");
+                feedback.tips.push("🎯 **Your pitch control doesn't suck!** Seriously, nice work. You can handle melodic songs. Time to add some style.");
             }
             
             if (m.breathControl < 50) {
-                feedback.tips.push("🌬️ **Breath support could use work.** Avoid songs with long held notes. Look for songs with natural pauses.");
-                feedback.secrets.push("Sneak breaths during instrumental breaks. No one's judging your breathing technique at karaoke.");
+                feedback.tips.push("🌬️ **Running out of air?** Avoid songs with long held notes. Look for songs with natural pauses — your lungs will thank you.");
+                feedback.secrets.push("Sneak breaths during instrumental breaks. Gasp dramatically between lines — call it 'emotional delivery.'");
             }
             
             if (m.consistency < 50) {
-                feedback.tips.push("🎪 **You're all over the place** — but hey, that's energy! Channel it into crowd-pleasers where enthusiasm beats precision.");
+                feedback.tips.push("🎪 **You're all over the place** — but that's just chaotic energy looking for a home. Channel it into crowd-pleasers where enthusiasm beats precision.");
+            } else if (m.consistency < 70) {
+                feedback.tips.push("🎪 **Inconsistent but not hopeless.** Some notes land, some don't. Pick songs where the verses are easy and you can phone in the chorus with everyone else.");
             }
             
             if (m.vibratoPresence > 60) {
-                feedback.tips.push("〰️ **Natural vibrato detected!** Use it on held notes for that professional sound. Very fancy.");
+                feedback.tips.push("〰️ **Natural vibrato detected!** Use it on held notes. It makes you sound fancy and hides slight pitch issues. Win-win.");
             } else if (m.vibratoPresence < 20 && m.stability > 50) {
-                feedback.secrets.push("No vibrato? That's fine — a clean, straight tone works great for modern pop. Own it.");
+                feedback.secrets.push("No vibrato? A clean, straight tone works for modern pop. Own it like it's a choice.");
             }
             
             // Voice-type specific tips
             const voiceTips = {
-                'Bass': "🎸 Deep voices are RARE at karaoke. You'll stand out just by existing. Johnny Cash, Elvis, and anything country is your wheelhouse.",
-                'Baritone': "🎷 The most versatile male range! You can go up OR down. Classic rock and soul were made for you.",
-                'Tenor': "🎺 High male voices get all the fun songs, but also all the hard songs. Know your limits or you'll be squeaking by the second chorus.",
-                'Alto': "🎻 Rich, warm tones! You're the backbone of any choir. Amy Winehouse, Adele's lower stuff, and indie rock are calling your name.",
-                'Mezzo-Soprano': "🎹 The Goldilocks zone — not too high, not too low. Most female pop songs are written for you. Lucky!",
-                'Soprano': "✨ Sky-high range! Just because you CAN hit those notes doesn't mean every song needs them. Save the fireworks for the finale."
+                'Bass': "🎸 **Bass advantage:** Deep voices are RARE at karaoke. You'll stand out just by existing. Johnny Cash energy — low, slow, and cool.",
+                'Baritone': "🎷 **Baritone sweet spot:** The most versatile male range! You can fake going up OR down. Classic rock and soul were made for you.",
+                'Tenor': "🎺 **Tenor truth:** High male voices get the fun songs AND the hard songs. Know when to bail on a high note — falsetto or just... skip it.",
+                'Alto': "🎻 **Alto energy:** Rich, warm tones that cut through noise. Amy Winehouse, Adele's lower stuff, and anything indie. Own the smolder.",
+                'Mezzo-Soprano': "🎹 **Mezzo magic:** The Goldilocks zone — not too high, not too low. Most pop is literally written for your voice. Lucky you.",
+                'Soprano': "✨ **Soprano warning:** Just because you CAN hit those notes doesn't mean every song needs them. Save the fireworks or blow out early."
             };
             feedback.tips.push(voiceTips[m.voiceType]);
             
-            // Fake-it-til-you-make-it secrets
-            feedback.secrets.push("🤫 **The Talk-Sing:** When a note is too high, just... talk it rhythmically. Bob Dylan made a career of this.");
-            feedback.secrets.push("🎤 **Mic Technique:** Eat the mic on quiet parts, pull back on loud parts. Sounds more dynamic than you actually are.");
-            feedback.secrets.push("👥 **Crowd Work:** Point at the audience during the chorus. They'll sing along and cover your mistakes.");
+            // Fake-it secrets based on suck level
+            if (feedback.suckScore > 70) {
+                feedback.secrets.push("🤫 **The Talk-Sing:** When in doubt, speak rhythmically. Bob Dylan, Rex Harrison, and half of punk rock prove this works.");
+                feedback.secrets.push("👯 **Recruit backup:** Physically drag friends to the mic. Their voices cover yours.");
+            } else if (feedback.suckScore > 40) {
+                feedback.secrets.push("🤫 **The Talk-Sing:** For trouble notes, just... speak them dramatically. It's 'artistic interpretation.'");
+            }
             
-            if (m.stability < 50) {
-                feedback.secrets.push("🍺 **The Sweet Spot:** One drink loosens you up. Three drinks and you stop caring. Find your number.");
+            feedback.secrets.push("🎤 **Mic technique:** Eat the mic on quiet parts, pull away on loud parts. Instant dynamics you didn't earn.");
+            feedback.secrets.push("👥 **Crowd work:** Point at the audience during the chorus. They'll sing along and cover your sins.");
+            
+            if (feedback.suckScore > 50) {
+                feedback.secrets.push("🍺 **Liquid courage calibration:** One drink loosens you up. Three drinks and you stop caring about quality. Find your number.");
+                feedback.secrets.push("📱 **Screen dedication:** Stare at the lyrics screen like it contains the meaning of life. No one expects eye contact from someone reading.");
             }
             
             if (m.range < 12) {
-                feedback.secrets.push("🔑 **Key Change Hack:** Most karaoke machines let you adjust the key. Down 2-3 semitones can save your life.");
+                feedback.secrets.push("🔑 **Key change exploit:** Most karaoke machines adjust key. Down 2-3 semitones can transform impossible into merely difficult.");
             }
             
-            feedback.secrets.push("📱 **The Lyrics Trick:** Glance at your phone for lyrics during the intro. No one will know.");
-            feedback.secrets.push("🎭 **Confidence > Competence:** Move around! Dance badly! A boring good singer loses to an entertaining bad one EVERY time.");
+            feedback.secrets.push("🎭 **The Golden Rule:** Confidence > Competence. A boring good singer loses to an entertaining bad one. Move around. Commit to the bit.");
             
             return feedback;
         }
@@ -1473,12 +1658,35 @@
             `).join('');
             
             let tipsHtml = data.feedback.tips.map(tip => `<div class="tip-item">${tip}</div>`).join('');
-            let secretsHtml = data.feedback.secrets.slice(0, 4).map(secret => `<div class="secret-item">${secret}</div>`).join('');
+            let secretsHtml = data.feedback.secrets.slice(0, 5).map(secret => `<div class="secret-item">${secret}</div>`).join('');
+
+            // Calculate meter position (inverted because 1 = best, 100 = worst)
+            const meterPosition = data.feedback.suckScore;
 
             results.innerHTML = `
+                <div class="suck-meter-container">
+                    <div class="suck-meter-header">
+                        <span class="suck-meter-title">THE SUCK METER</span>
+                        <span class="suck-meter-emoji">${data.feedback.suckEmoji}</span>
+                    </div>
+                    <div class="suck-score-display">
+                        <span class="suck-score" style="color: ${data.feedback.suckColor}">${data.feedback.suckScore}</span>
+                        <span class="suck-max">/ 100</span>
+                    </div>
+                    <div class="suck-label" style="color: ${data.feedback.suckColor}">${data.feedback.suckLabel}</div>
+                    <div class="suck-meter-track">
+                        <div class="suck-meter-gradient"></div>
+                        <div class="suck-meter-needle" style="left: ${meterPosition}%"></div>
+                    </div>
+                    <div class="suck-meter-labels">
+                        <span>Doesn't Suck</span>
+                        <span>Legendary Suck</span>
+                    </div>
+                    <div class="suck-description">${data.feedback.suckDescription}</div>
+                </div>
+
                 <div class="profile">
-                    <div class="headline">${data.feedback.headline}</div>
-                    <h2>Your Voice Profile</h2>
+                    <h2>Voice Profile</h2>
                     <div class="profile-grid">
                         <div class="profile-item">
                             <label>Voice Type</label>
@@ -1543,7 +1751,7 @@
                 </div>
                 
                 <div class="feedback-section tips">
-                    <h3>💡 Tips For You</h3>
+                    <h3>📉 How To Suck Less</h3>
                     ${tipsHtml}
                 </div>
 
@@ -1576,8 +1784,8 @@
                 </div>
                 
                 <div class="feedback-section secrets">
-                    <h3>🤫 Fake It Tips</h3>
-                    <p class="section-subtitle">Between us... here's how to sound better than you are</p>
+                    <h3>🤫 Cheat Codes</h3>
+                    <p class="section-subtitle">Between us... here's how to fake it</p>
                     ${secretsHtml}
                 </div>
 
