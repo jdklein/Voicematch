@@ -899,6 +899,114 @@
         .record-header {
             margin-bottom: 12px;
         }
+        
+        /* Vocal Doppelganger Styles */
+        .doppelganger-container {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 2px solid rgba(167, 139, 250, 0.3);
+        }
+        
+        .doppelganger-header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .doppelganger-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #f472b6;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .doppelganger-subtitle {
+            font-size: 14px;
+            color: #c4b5fd;
+        }
+        
+        .doppelganger-primary {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .doppelganger-primary .match-emoji {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+        
+        .doppelganger-primary .singer-name {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #f472b6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        .doppelganger-primary .match-quality {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .match-quality.uncanny { background: #4ade80; color: #052e16; }
+        .match-quality.strong { background: #a78bfa; color: #1e1b4b; }
+        .match-quality.decent { background: #facc15; color: #422006; }
+        .match-quality.loose { background: #6b7280; color: white; }
+        
+        .doppelganger-primary .description {
+            font-size: 15px;
+            color: #e9d5ff;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .doppelganger-primary .fun-fact {
+            font-size: 13px;
+            color: #a78bfa;
+        }
+        
+        .doppelganger-runners {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .doppelganger-runner {
+            flex: 1;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .doppelganger-runner .rank {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .doppelganger-runner .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c4b5fd;
+            margin-bottom: 2px;
+        }
+        
+        .doppelganger-runner .score {
+            font-size: 11px;
+            color: #9ca3af;
+        }
     </style>
 </head>
 <body>
@@ -1471,6 +1579,104 @@
             { title: "Somewhere Over the Rainbow", artist: "from The Wizard of Oz", minNote: 55, maxNote: 72, difficulty: "hard", genre: "musical" },
         ];
 
+        // ========== VOCAL DOPPELGANGER DATABASE ==========
+        // Famous singers with their vocal characteristics for matching
+        const FAMOUS_SINGERS = [
+            // BASS (Male low)
+            { name: "Johnny Cash", voiceType: "Bass", minNote: 36, maxNote: 53, vibrato: "low", stability: "high", style: "steady", gender: "male",
+              description: "The Man in Black — deep, steady, and effortlessly cool", funFact: "Never needed range when you've got THAT much gravitas" },
+            { name: "Barry White", voiceType: "Bass", minNote: 34, maxNote: 52, vibrato: "medium", stability: "high", style: "smooth", gender: "male",
+              description: "The Walrus of Love — velvet thunder", funFact: "Your voice could narrate nature documentaries" },
+            { name: "Leonard Cohen", voiceType: "Bass", minNote: 36, maxNote: 50, vibrato: "low", stability: "medium", style: "talk-sing", gender: "male",
+              description: "The poet laureate of croon — proof that talking counts as singing", funFact: "Range is optional when you have wisdom" },
+            { name: "Josh Turner", voiceType: "Bass", minNote: 38, maxNote: 55, vibrato: "low", stability: "high", style: "country", gender: "male",
+              description: "Country's rumbling bass — smooth like Tennessee whiskey", funFact: "Deep enough to register on seismographs" },
+            
+            // BARITONE (Male mid-low)  
+            { name: "Elvis Presley", voiceType: "Baritone", minNote: 41, maxNote: 60, vibrato: "medium", stability: "high", style: "dynamic", gender: "male",
+              description: "The King — powerful, versatile, and dripping with charisma", funFact: "Your hips might also be dangerous" },
+            { name: "Frank Sinatra", voiceType: "Baritone", minNote: 43, maxNote: 58, vibrato: "medium", stability: "high", style: "smooth", gender: "male",
+              description: "Ol' Blue Eyes — smooth phrasing and impeccable control", funFact: "You probably look good in a fedora" },
+            { name: "Michael Bublé", voiceType: "Baritone", minNote: 45, maxNote: 62, vibrato: "medium", stability: "high", style: "jazzy", gender: "male",
+              description: "Christmas's favorite son — warm, buttery, and festive", funFact: "You own at least one velvet blazer, don't you?" },
+            { name: "Eddie Vedder", voiceType: "Baritone", minNote: 43, maxNote: 60, vibrato: "low", stability: "medium", style: "gritty", gender: "male",
+              description: "Pearl Jam's soul — raw, emotional, and unapologetically intense", funFact: "Flannel is your formal wear" },
+            { name: "Hozier", voiceType: "Baritone", minNote: 45, maxNote: 62, vibrato: "medium", stability: "high", style: "soulful", gender: "male",
+              description: "Bog Irish bluesman — hauntingly beautiful and slightly feral", funFact: "You've definitely stood dramatically in rain" },
+            { name: "Chris Stapleton", voiceType: "Baritone", minNote: 43, maxNote: 60, vibrato: "high", stability: "medium", style: "soulful", gender: "male",
+              description: "Country soul powerhouse — whiskey-soaked and powerful", funFact: "Your beard has its own vocal range" },
+            
+            // TENOR (Male high)
+            { name: "Freddie Mercury", voiceType: "Tenor", minNote: 48, maxNote: 72, vibrato: "high", stability: "high", style: "operatic", gender: "male",
+              description: "The GOAT — four octaves of pure theatrical excellence", funFact: "Your shower has seen some PERFORMANCES" },
+            { name: "Steve Perry", voiceType: "Tenor", minNote: 50, maxNote: 68, vibrato: "high", stability: "high", style: "powerful", gender: "male",
+              description: "Journey's golden voice — soaring, emotional, iconic", funFact: "You've never stopped believing. Ever." },
+            { name: "Bruno Mars", voiceType: "Tenor", minNote: 50, maxNote: 65, vibrato: "medium", stability: "high", style: "funky", gender: "male",
+              description: "Retro-funk prince — tight, precise, and impossibly smooth", funFact: "You probably have moves too" },
+            { name: "The Weeknd", voiceType: "Tenor", minNote: 50, maxNote: 67, vibrato: "low", stability: "high", style: "falsetto", gender: "male",
+              description: "Dark R&B king — ethereal falsetto and moody vibes", funFact: "You feel things at 2am" },
+            { name: "Adam Levine", voiceType: "Tenor", minNote: 52, maxNote: 68, vibrato: "low", stability: "high", style: "pop", gender: "male",
+              description: "Maroon 5's falsetto machine — clean, high, and radio-ready", funFact: "You're probably annoyingly photogenic too" },
+            { name: "Ed Sheeran", voiceType: "Tenor", minNote: 48, maxNote: 62, vibrato: "low", stability: "high", style: "intimate", gender: "male",
+              description: "Ginger troubadour — warm, genuine, and surprisingly versatile", funFact: "Just you and a loop pedal against the world" },
+            { name: "Sam Smith", voiceType: "Tenor", minNote: 50, maxNote: 68, vibrato: "high", stability: "high", style: "emotional", gender: "male",
+              description: "Tearful balladeer — pure emotion with pristine control", funFact: "You've made strangers cry. In a good way." },
+            { name: "Axl Rose", voiceType: "Tenor", minNote: 48, maxNote: 74, vibrato: "medium", stability: "medium", style: "wild", gender: "male",
+              description: "GN'R's screaming legend — five octaves of chaos", funFact: "Your voice does NOT follow rules" },
+            
+            // ALTO (Female low)
+            { name: "Amy Winehouse", voiceType: "Alto", minNote: 50, maxNote: 65, vibrato: "medium", stability: "medium", style: "jazzy", gender: "female",
+              description: "Camden's jazz queen — smoky, soulful, and utterly unique", funFact: "Your eyeliner game is probably strong too" },
+            { name: "Adele", voiceType: "Alto", minNote: 48, maxNote: 67, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              description: "Britain's heartbreak engine — powerful, emotional, devastating", funFact: "Exes are terrified of you" },
+            { name: "Tracy Chapman", voiceType: "Alto", minNote: 48, maxNote: 62, vibrato: "low", stability: "high", style: "folk", gender: "female",
+              description: "Fast car, slow burn — intimate and impossibly soulful", funFact: "You make acoustic guitar sound revolutionary" },
+            { name: "Toni Braxton", voiceType: "Alto", minNote: 48, maxNote: 65, vibrato: "medium", stability: "high", style: "sultry", gender: "female",
+              description: "R&B's velvet contralto — smooth, deep, and devastating", funFact: "You unbreak hearts professionally" },
+            { name: "Lana Del Rey", voiceType: "Alto", minNote: 50, maxNote: 65, vibrato: "low", stability: "medium", style: "dreamy", gender: "female",
+              description: "Sad girl summer queen — nostalgic, cinematic, melancholy", funFact: "Your aesthetic has an aesthetic" },
+            { name: "Billie Eilish", voiceType: "Alto", minNote: 48, maxNote: 63, vibrato: "low", stability: "high", style: "whisper", gender: "female",
+              description: "ASMR pop princess — breathy, haunting, and Gen Z royalty", funFact: "You whisper and somehow it's LOUD" },
+            
+            // MEZZO-SOPRANO (Female mid)
+            { name: "Beyoncé", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 72, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              description: "Queen Bey — literally flawless in every register", funFact: "You were probably born ready" },
+            { name: "Lady Gaga", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 70, vibrato: "high", stability: "high", style: "theatrical", gender: "female",
+              description: "Pop's chameleon — powerful pipes and zero limits", funFact: "You commit to EVERY moment" },
+            { name: "P!nk", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 68, vibrato: "medium", stability: "high", style: "powerful", gender: "female",
+              description: "Aerial acrobat with pipes — raspy, powerful, athletic", funFact: "You could sing while doing a backflip" },
+            { name: "Taylor Swift", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 65, vibrato: "low", stability: "high", style: "storyteller", gender: "female",
+              description: "Pop's narrative queen — clear, intimate, emotionally precise", funFact: "Your diary is a platinum album" },
+            { name: "Rihanna", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 67, vibrato: "low", stability: "medium", style: "edgy", gender: "female",
+              description: "Barbadian bad gal — attitude with a side of melody", funFact: "Work work work work work work" },
+            { name: "Kelly Clarkson", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 70, vibrato: "high", stability: "high", style: "belter", gender: "female",
+              description: "Original Idol powerhouse — belt for days and zero fear", funFact: "Since U Been Gone, your range has only grown" },
+            { name: "Stevie Nicks", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 65, vibrato: "medium", stability: "medium", style: "witchy", gender: "female",
+              description: "Fleetwood's mystic — ethereal, distinctive, magical", funFact: "You own at least one shawl. Probably more." },
+            { name: "Dua Lipa", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 67, vibrato: "low", stability: "high", style: "disco", gender: "female",
+              description: "Disco's new darling — cool, controlled, and danceable", funFact: "You don't break rules, you make new ones" },
+            { name: "Olivia Rodrigo", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 68, vibrato: "medium", stability: "high", style: "emotional", gender: "female",
+              description: "Gen Z heartbreak hero — raw emotion, perfect pitch", funFact: "Your driver's license is a weapon" },
+            
+            // SOPRANO (Female high)
+            { name: "Whitney Houston", voiceType: "Soprano", minNote: 55, maxNote: 78, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              description: "THE voice — literally the vocal blueprint", funFact: "You make other sopranos cry into their tea" },
+            { name: "Mariah Carey", voiceType: "Soprano", minNote: 52, maxNote: 84, vibrato: "high", stability: "high", style: "melismatic", gender: "female",
+              description: "The whistle queen — five octaves and infinite runs", funFact: "Dogs hear notes you haven't sung yet" },
+            { name: "Ariana Grande", voiceType: "Soprano", minNote: 55, maxNote: 78, vibrato: "medium", stability: "high", style: "agile", gender: "female",
+              description: "Ponytail powerhouse — light, flexible, deceptively strong", funFact: "Thank u, next... octave" },
+            { name: "Celine Dion", voiceType: "Soprano", minNote: 52, maxNote: 77, vibrato: "high", stability: "high", style: "dramatic", gender: "female",
+              description: "Canadian ballad titan — power, passion, and perfect pitch", funFact: "Your heart will go on. And on. And ON." },
+            { name: "Christina Aguilera", voiceType: "Soprano", minNote: 52, maxNote: 76, vibrato: "high", stability: "high", style: "belter", gender: "female",
+              description: "Vocal acrobat — runs, belts, and zero subtlety", funFact: "One note? You hear seventeen." },
+            { name: "Sia", voiceType: "Soprano", minNote: 53, maxNote: 72, vibrato: "high", stability: "medium", style: "raw", gender: "female",
+              description: "Chandelier swinger — raw power and emotional chaos", funFact: "You feel emotions in 4K resolution" },
+            { name: "Dolly Parton", voiceType: "Soprano", minNote: 55, maxNote: 72, vibrato: "high", stability: "high", style: "country", gender: "female",
+              description: "Country's queen — bright, twangy, and icon status", funFact: "9 to 5 describes your vocal work ethic" },
+            { name: "Miley Cyrus", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 68, vibrato: "medium", stability: "medium", style: "raspy", gender: "female",
+              description: "Wrecking ball of rasp — evolved from Disney to rock goddess", funFact: "Your voice came in like a... well, you know" },
+        ];
+
         // State
         let isRecording = false;
         let audioContext = null;
@@ -1894,7 +2100,82 @@
                 good,
                 stretch,
                 crowd,
-                feedback
+                feedback,
+                doppelgangers: findVocalDoppelgangers(metrics)
+            });
+        }
+        
+        // ========== VOCAL DOPPELGANGER MATCHING ==========
+        function findVocalDoppelgangers(m) {
+            // Score each famous singer based on similarity to user's voice
+            const scored = FAMOUS_SINGERS.map(singer => {
+                let score = 0;
+                
+                // Voice type match (most important - 40 points)
+                if (singer.voiceType === m.voiceType) {
+                    score += 40;
+                } else {
+                    // Adjacent voice types get partial credit
+                    const voiceOrder = ['Bass', 'Baritone', 'Tenor', 'Alto', 'Mezzo-Soprano', 'Soprano'];
+                    const userIdx = voiceOrder.indexOf(m.voiceType);
+                    const singerIdx = voiceOrder.indexOf(singer.voiceType);
+                    const distance = Math.abs(userIdx - singerIdx);
+                    if (distance === 1) score += 20;
+                    else if (distance === 2) score += 5;
+                    // More than 2 away = no points
+                }
+                
+                // Range overlap (25 points max)
+                const userRange = m.maxMidi - m.minMidi;
+                const singerRange = singer.maxNote - singer.minNote;
+                const overlap = Math.min(m.maxMidi, singer.maxNote) - Math.max(m.minMidi, singer.minNote);
+                const overlapPercent = Math.max(0, overlap / Math.max(userRange, singerRange));
+                score += overlapPercent * 25;
+                
+                // Comfort zone alignment (15 points max)
+                const comfortOverlap = Math.min(m.comfortHigh, singer.maxNote) - Math.max(m.comfortLow, singer.minNote);
+                const comfortScore = Math.max(0, comfortOverlap / singerRange);
+                score += comfortScore * 15;
+                
+                // Vibrato match (10 points)
+                const userVibrato = m.vibratoPresence > 50 ? 'high' : m.vibratoPresence > 25 ? 'medium' : 'low';
+                if (singer.vibrato === userVibrato) score += 10;
+                else if (
+                    (singer.vibrato === 'medium' && (userVibrato === 'high' || userVibrato === 'low')) ||
+                    (userVibrato === 'medium' && (singer.vibrato === 'high' || singer.vibrato === 'low'))
+                ) score += 5;
+                
+                // Stability match (10 points)
+                const userStability = m.stability > 65 ? 'high' : m.stability > 40 ? 'medium' : 'low';
+                if (singer.stability === userStability) score += 10;
+                else if (
+                    (singer.stability === 'medium') || (userStability === 'medium')
+                ) score += 5;
+                
+                // Bonus for range span similarity
+                const rangeDiff = Math.abs(userRange - singerRange);
+                if (rangeDiff < 3) score += 5;
+                else if (rangeDiff < 6) score += 2;
+                
+                return { ...singer, score: Math.round(score) };
+            }).sort((a, b) => b.score - a.score);
+            
+            // Return top 3 matches
+            const top3 = scored.slice(0, 3);
+            
+            // Add match quality labels
+            return top3.map((match, index) => {
+                let matchQuality;
+                if (match.score >= 75) matchQuality = 'Uncanny';
+                else if (match.score >= 60) matchQuality = 'Strong';
+                else if (match.score >= 45) matchQuality = 'Decent';
+                else matchQuality = 'Loose';
+                
+                return {
+                    ...match,
+                    matchQuality,
+                    rank: index + 1
+                };
             });
         }
         
@@ -2128,8 +2409,46 @@
 
             // Calculate meter position (inverted because 1 = best, 100 = worst)
             const meterPosition = data.feedback.suckScore;
+            
+            // Build doppelganger HTML
+            let doppelgangerHtml = '';
+            if (data.doppelgangers && data.doppelgangers.length > 0) {
+                const primary = data.doppelgangers[0];
+                const runners = data.doppelgangers.slice(1);
+                
+                const matchEmojis = { 'Uncanny': '🎯', 'Strong': '⭐', 'Decent': '👍', 'Loose': '🤔' };
+                
+                doppelgangerHtml = `
+                    <div class="doppelganger-container">
+                        <div class="doppelganger-header">
+                            <div class="doppelganger-title">🎭 VOCAL DOPPELGÄNGER</div>
+                            <div class="doppelganger-subtitle">You sound like...</div>
+                        </div>
+                        <div class="doppelganger-primary">
+                            <div class="match-emoji">${matchEmojis[primary.matchQuality] || '🎤'}</div>
+                            <div class="singer-name">${primary.name}</div>
+                            <span class="match-quality ${primary.matchQuality.toLowerCase()}">${primary.score}% Match • ${primary.matchQuality}</span>
+                            <div class="description">"${primary.description}"</div>
+                            <div class="fun-fact">💡 ${primary.funFact}</div>
+                        </div>
+                        ${runners.length > 0 ? `
+                        <div class="doppelganger-runners">
+                            ${runners.map(r => `
+                                <div class="doppelganger-runner">
+                                    <div class="rank">#${r.rank}</div>
+                                    <div class="name">${r.name}</div>
+                                    <div class="score">${r.score}% match</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
 
             results.innerHTML = `
+                ${doppelgangerHtml}
+                
                 <div class="suck-meter-container">
                     <div class="suck-meter-header">
                         <span class="suck-meter-title">THE SUCK METER</span>
@@ -2713,6 +3032,7 @@
             const crowd = SONG_DATABASE.filter(s => s.difficulty === 'easy').sort(() => Math.random() - 0.5).slice(0, 3);
 
             const feedback = generateFeedback(metrics);
+            const doppelgangers = findVocalDoppelgangers(metrics);
 
             showResultsWithSong({
                 metrics,
@@ -2725,7 +3045,8 @@
                 stretch,
                 crowd,
                 feedback,
-                songFit
+                songFit,
+                doppelgangers
             });
         }
         
@@ -2790,9 +3111,47 @@
             let secretsHtml = data.feedback.secrets.slice(0, 4).map(secret => `<div class="secret-item">${secret}</div>`).join('');
 
             const meterPosition = data.feedback.suckScore;
+            
+            // Build doppelganger HTML
+            let doppelgangerHtml = '';
+            if (data.doppelgangers && data.doppelgangers.length > 0) {
+                const primary = data.doppelgangers[0];
+                const runners = data.doppelgangers.slice(1);
+                
+                const matchEmojis = { 'Uncanny': '🎯', 'Strong': '⭐', 'Decent': '👍', 'Loose': '🤔' };
+                
+                doppelgangerHtml = `
+                    <div class="doppelganger-container">
+                        <div class="doppelganger-header">
+                            <div class="doppelganger-title">🎭 VOCAL DOPPELGÄNGER</div>
+                            <div class="doppelganger-subtitle">You sound like...</div>
+                        </div>
+                        <div class="doppelganger-primary">
+                            <div class="match-emoji">${matchEmojis[primary.matchQuality] || '🎤'}</div>
+                            <div class="singer-name">${primary.name}</div>
+                            <span class="match-quality ${primary.matchQuality.toLowerCase()}">${primary.score}% Match • ${primary.matchQuality}</span>
+                            <div class="description">"${primary.description}"</div>
+                            <div class="fun-fact">💡 ${primary.funFact}</div>
+                        </div>
+                        ${runners.length > 0 ? `
+                        <div class="doppelganger-runners">
+                            ${runners.map(r => `
+                                <div class="doppelganger-runner">
+                                    <div class="rank">#${r.rank}</div>
+                                    <div class="name">${r.name}</div>
+                                    <div class="score">${r.score}% match</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
 
             results.innerHTML = `
                 ${songFitHtml}
+                
+                ${doppelgangerHtml}
                 
                 <div class="suck-meter-container">
                     <div class="suck-meter-header">
