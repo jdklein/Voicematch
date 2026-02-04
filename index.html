@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Voice Match - Find Your Karaoke Song</title>
     
+    <!-- Meyda.js for advanced audio feature extraction -->
+    <script src="https://unpkg.com/meyda@5.6.2/dist/web/meyda.min.js"></script>
+    
     <!-- Analytics - Replace GA_MEASUREMENT_ID with your Google Analytics ID (e.g., G-XXXXXXXXXX) -->
     <!-- Get your ID at: https://analytics.google.com → Create Property → Get Measurement ID -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
@@ -1007,6 +1010,114 @@
             font-size: 11px;
             color: #9ca3af;
         }
+        
+        /* Timbre/Voice Character Section */
+        .timbre-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 14px;
+        }
+        
+        .timbre-section h4 {
+            font-size: 12px;
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .timbre-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .timbre-item {
+            text-align: center;
+        }
+        
+        .timbre-item .timbre-label {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+        
+        .timbre-item .timbre-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        
+        .timbre-item .timbre-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .timbre-fill.brightness { background: linear-gradient(90deg, #6b7280, #fbbf24); }
+        .timbre-fill.breathiness { background: linear-gradient(90deg, #3b82f6, #e0e7ff); }
+        .timbre-fill.warmth { background: linear-gradient(90deg, #93c5fd, #f97316); }
+        
+        .timbre-item .timbre-value {
+            font-size: 11px;
+            font-weight: 600;
+            color: #c4b5fd;
+        }
+        
+        .spectral-badge {
+            display: inline-block;
+            font-size: 9px;
+            padding: 2px 6px;
+            background: rgba(167, 139, 250, 0.3);
+            border-radius: 4px;
+            color: #c4b5fd;
+            margin-left: 8px;
+        }
+        
+        /* Privacy Footer */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 16px;
+        }
+        
+        .footer-brand {
+            font-size: 12px;
+            color: #7c3aed;
+            margin-bottom: 8px;
+        }
+        
+        .privacy-notice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .privacy-notice .icon {
+            font-size: 14px;
+        }
+        
+        .privacy-notice .text {
+            font-size: 11px;
+            color: #86efac;
+            line-height: 1.4;
+        }
+        
+        .privacy-notice .text strong {
+            color: #4ade80;
+        }
     </style>
 </head>
 <body>
@@ -1134,7 +1245,13 @@
             <div class="results" id="results"></div>
         </div>
         
-        <p class="footer">Voice Match • Built for karaoke lovers</p>
+        <div class="footer">
+            <p class="footer-brand">🎤 Voice Match • Built for karaoke lovers</p>
+            <div class="privacy-notice">
+                <span class="icon">🔒</span>
+                <span class="text"><strong>Your privacy matters.</strong> Voice recordings are analyzed locally in your browser and are <strong>never recorded, stored, or sent to any server</strong>.</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1582,98 +1699,139 @@
         // ========== VOCAL DOPPELGANGER DATABASE ==========
         // Famous singers with their vocal characteristics for matching
         const FAMOUS_SINGERS = [
-            // BASS (Male low)
+            // BASS (Male low) - Generally warm, low brightness
             { name: "Johnny Cash", voiceType: "Bass", minNote: 36, maxNote: 53, vibrato: "low", stability: "high", style: "steady", gender: "male",
+              brightness: 25, breathiness: 20, warmth: 85,
               description: "The Man in Black — deep, steady, and effortlessly cool", funFact: "Never needed range when you've got THAT much gravitas" },
             { name: "Barry White", voiceType: "Bass", minNote: 34, maxNote: 52, vibrato: "medium", stability: "high", style: "smooth", gender: "male",
+              brightness: 20, breathiness: 30, warmth: 95,
               description: "The Walrus of Love — velvet thunder", funFact: "Your voice could narrate nature documentaries" },
             { name: "Leonard Cohen", voiceType: "Bass", minNote: 36, maxNote: 50, vibrato: "low", stability: "medium", style: "talk-sing", gender: "male",
+              brightness: 30, breathiness: 40, warmth: 75,
               description: "The poet laureate of croon — proof that talking counts as singing", funFact: "Range is optional when you have wisdom" },
             { name: "Josh Turner", voiceType: "Bass", minNote: 38, maxNote: 55, vibrato: "low", stability: "high", style: "country", gender: "male",
+              brightness: 30, breathiness: 15, warmth: 90,
               description: "Country's rumbling bass — smooth like Tennessee whiskey", funFact: "Deep enough to register on seismographs" },
             
-            // BARITONE (Male mid-low)  
+            // BARITONE (Male mid-low) - Moderate warmth, varied brightness
             { name: "Elvis Presley", voiceType: "Baritone", minNote: 41, maxNote: 60, vibrato: "medium", stability: "high", style: "dynamic", gender: "male",
+              brightness: 50, breathiness: 25, warmth: 75,
               description: "The King — powerful, versatile, and dripping with charisma", funFact: "Your hips might also be dangerous" },
             { name: "Frank Sinatra", voiceType: "Baritone", minNote: 43, maxNote: 58, vibrato: "medium", stability: "high", style: "smooth", gender: "male",
+              brightness: 45, breathiness: 30, warmth: 80,
               description: "Ol' Blue Eyes — smooth phrasing and impeccable control", funFact: "You probably look good in a fedora" },
             { name: "Michael Bublé", voiceType: "Baritone", minNote: 45, maxNote: 62, vibrato: "medium", stability: "high", style: "jazzy", gender: "male",
+              brightness: 50, breathiness: 20, warmth: 85,
               description: "Christmas's favorite son — warm, buttery, and festive", funFact: "You own at least one velvet blazer, don't you?" },
             { name: "Eddie Vedder", voiceType: "Baritone", minNote: 43, maxNote: 60, vibrato: "low", stability: "medium", style: "gritty", gender: "male",
+              brightness: 40, breathiness: 35, warmth: 70,
               description: "Pearl Jam's soul — raw, emotional, and unapologetically intense", funFact: "Flannel is your formal wear" },
             { name: "Hozier", voiceType: "Baritone", minNote: 45, maxNote: 62, vibrato: "medium", stability: "high", style: "soulful", gender: "male",
+              brightness: 45, breathiness: 40, warmth: 80,
               description: "Bog Irish bluesman — hauntingly beautiful and slightly feral", funFact: "You've definitely stood dramatically in rain" },
             { name: "Chris Stapleton", voiceType: "Baritone", minNote: 43, maxNote: 60, vibrato: "high", stability: "medium", style: "soulful", gender: "male",
+              brightness: 40, breathiness: 30, warmth: 85,
               description: "Country soul powerhouse — whiskey-soaked and powerful", funFact: "Your beard has its own vocal range" },
             
-            // TENOR (Male high)
+            // TENOR (Male high) - Generally brighter, varied breathiness
             { name: "Freddie Mercury", voiceType: "Tenor", minNote: 48, maxNote: 72, vibrato: "high", stability: "high", style: "operatic", gender: "male",
+              brightness: 70, breathiness: 15, warmth: 65,
               description: "The GOAT — four octaves of pure theatrical excellence", funFact: "Your shower has seen some PERFORMANCES" },
             { name: "Steve Perry", voiceType: "Tenor", minNote: 50, maxNote: 68, vibrato: "high", stability: "high", style: "powerful", gender: "male",
+              brightness: 75, breathiness: 20, warmth: 60,
               description: "Journey's golden voice — soaring, emotional, iconic", funFact: "You've never stopped believing. Ever." },
             { name: "Bruno Mars", voiceType: "Tenor", minNote: 50, maxNote: 65, vibrato: "medium", stability: "high", style: "funky", gender: "male",
+              brightness: 65, breathiness: 25, warmth: 70,
               description: "Retro-funk prince — tight, precise, and impossibly smooth", funFact: "You probably have moves too" },
             { name: "The Weeknd", voiceType: "Tenor", minNote: 50, maxNote: 67, vibrato: "low", stability: "high", style: "falsetto", gender: "male",
+              brightness: 60, breathiness: 50, warmth: 55,
               description: "Dark R&B king — ethereal falsetto and moody vibes", funFact: "You feel things at 2am" },
             { name: "Adam Levine", voiceType: "Tenor", minNote: 52, maxNote: 68, vibrato: "low", stability: "high", style: "pop", gender: "male",
+              brightness: 70, breathiness: 35, warmth: 50,
               description: "Maroon 5's falsetto machine — clean, high, and radio-ready", funFact: "You're probably annoyingly photogenic too" },
             { name: "Ed Sheeran", voiceType: "Tenor", minNote: 48, maxNote: 62, vibrato: "low", stability: "high", style: "intimate", gender: "male",
+              brightness: 50, breathiness: 40, warmth: 75,
               description: "Ginger troubadour — warm, genuine, and surprisingly versatile", funFact: "Just you and a loop pedal against the world" },
             { name: "Sam Smith", voiceType: "Tenor", minNote: 50, maxNote: 68, vibrato: "high", stability: "high", style: "emotional", gender: "male",
+              brightness: 55, breathiness: 45, warmth: 65,
               description: "Tearful balladeer — pure emotion with pristine control", funFact: "You've made strangers cry. In a good way." },
             { name: "Axl Rose", voiceType: "Tenor", minNote: 48, maxNote: 74, vibrato: "medium", stability: "medium", style: "wild", gender: "male",
+              brightness: 80, breathiness: 30, warmth: 45,
               description: "GN'R's screaming legend — five octaves of chaos", funFact: "Your voice does NOT follow rules" },
             
-            // ALTO (Female low)
+            // ALTO (Female low) - Generally warmer, darker
             { name: "Amy Winehouse", voiceType: "Alto", minNote: 50, maxNote: 65, vibrato: "medium", stability: "medium", style: "jazzy", gender: "female",
+              brightness: 35, breathiness: 30, warmth: 90,
               description: "Camden's jazz queen — smoky, soulful, and utterly unique", funFact: "Your eyeliner game is probably strong too" },
             { name: "Adele", voiceType: "Alto", minNote: 48, maxNote: 67, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              brightness: 45, breathiness: 25, warmth: 85,
               description: "Britain's heartbreak engine — powerful, emotional, devastating", funFact: "Exes are terrified of you" },
             { name: "Tracy Chapman", voiceType: "Alto", minNote: 48, maxNote: 62, vibrato: "low", stability: "high", style: "folk", gender: "female",
+              brightness: 40, breathiness: 35, warmth: 80,
               description: "Fast car, slow burn — intimate and impossibly soulful", funFact: "You make acoustic guitar sound revolutionary" },
             { name: "Toni Braxton", voiceType: "Alto", minNote: 48, maxNote: 65, vibrato: "medium", stability: "high", style: "sultry", gender: "female",
+              brightness: 35, breathiness: 40, warmth: 90,
               description: "R&B's velvet contralto — smooth, deep, and devastating", funFact: "You unbreak hearts professionally" },
             { name: "Lana Del Rey", voiceType: "Alto", minNote: 50, maxNote: 65, vibrato: "low", stability: "medium", style: "dreamy", gender: "female",
+              brightness: 40, breathiness: 55, warmth: 75,
               description: "Sad girl summer queen — nostalgic, cinematic, melancholy", funFact: "Your aesthetic has an aesthetic" },
             { name: "Billie Eilish", voiceType: "Alto", minNote: 48, maxNote: 63, vibrato: "low", stability: "high", style: "whisper", gender: "female",
+              brightness: 45, breathiness: 85, warmth: 60,
               description: "ASMR pop princess — breathy, haunting, and Gen Z royalty", funFact: "You whisper and somehow it's LOUD" },
             
-            // MEZZO-SOPRANO (Female mid)
+            // MEZZO-SOPRANO (Female mid) - Balanced characteristics
             { name: "Beyoncé", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 72, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              brightness: 65, breathiness: 20, warmth: 70,
               description: "Queen Bey — literally flawless in every register", funFact: "You were probably born ready" },
             { name: "Lady Gaga", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 70, vibrato: "high", stability: "high", style: "theatrical", gender: "female",
+              brightness: 60, breathiness: 25, warmth: 65,
               description: "Pop's chameleon — powerful pipes and zero limits", funFact: "You commit to EVERY moment" },
             { name: "P!nk", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 68, vibrato: "medium", stability: "high", style: "powerful", gender: "female",
+              brightness: 55, breathiness: 30, warmth: 60,
               description: "Aerial acrobat with pipes — raspy, powerful, athletic", funFact: "You could sing while doing a backflip" },
             { name: "Taylor Swift", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 65, vibrato: "low", stability: "high", style: "storyteller", gender: "female",
+              brightness: 70, breathiness: 40, warmth: 55,
               description: "Pop's narrative queen — clear, intimate, emotionally precise", funFact: "Your diary is a platinum album" },
             { name: "Rihanna", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 67, vibrato: "low", stability: "medium", style: "edgy", gender: "female",
+              brightness: 55, breathiness: 45, warmth: 60,
               description: "Barbadian bad gal — attitude with a side of melody", funFact: "Work work work work work work" },
             { name: "Kelly Clarkson", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 70, vibrato: "high", stability: "high", style: "belter", gender: "female",
+              brightness: 70, breathiness: 15, warmth: 65,
               description: "Original Idol powerhouse — belt for days and zero fear", funFact: "Since U Been Gone, your range has only grown" },
             { name: "Stevie Nicks", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 65, vibrato: "medium", stability: "medium", style: "witchy", gender: "female",
+              brightness: 50, breathiness: 50, warmth: 65,
               description: "Fleetwood's mystic — ethereal, distinctive, magical", funFact: "You own at least one shawl. Probably more." },
             { name: "Dua Lipa", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 67, vibrato: "low", stability: "high", style: "disco", gender: "female",
+              brightness: 55, breathiness: 35, warmth: 60,
               description: "Disco's new darling — cool, controlled, and danceable", funFact: "You don't break rules, you make new ones" },
             { name: "Olivia Rodrigo", voiceType: "Mezzo-Soprano", minNote: 52, maxNote: 68, vibrato: "medium", stability: "high", style: "emotional", gender: "female",
+              brightness: 65, breathiness: 35, warmth: 55,
               description: "Gen Z heartbreak hero — raw emotion, perfect pitch", funFact: "Your driver's license is a weapon" },
             
-            // SOPRANO (Female high)
+            // SOPRANO (Female high) - Generally brighter
             { name: "Whitney Houston", voiceType: "Soprano", minNote: 55, maxNote: 78, vibrato: "high", stability: "high", style: "powerful", gender: "female",
+              brightness: 75, breathiness: 15, warmth: 70,
               description: "THE voice — literally the vocal blueprint", funFact: "You make other sopranos cry into their tea" },
             { name: "Mariah Carey", voiceType: "Soprano", minNote: 52, maxNote: 84, vibrato: "high", stability: "high", style: "melismatic", gender: "female",
+              brightness: 80, breathiness: 25, warmth: 60,
               description: "The whistle queen — five octaves and infinite runs", funFact: "Dogs hear notes you haven't sung yet" },
             { name: "Ariana Grande", voiceType: "Soprano", minNote: 55, maxNote: 78, vibrato: "medium", stability: "high", style: "agile", gender: "female",
+              brightness: 85, breathiness: 30, warmth: 45,
               description: "Ponytail powerhouse — light, flexible, deceptively strong", funFact: "Thank u, next... octave" },
             { name: "Celine Dion", voiceType: "Soprano", minNote: 52, maxNote: 77, vibrato: "high", stability: "high", style: "dramatic", gender: "female",
+              brightness: 70, breathiness: 20, warmth: 65,
               description: "Canadian ballad titan — power, passion, and perfect pitch", funFact: "Your heart will go on. And on. And ON." },
             { name: "Christina Aguilera", voiceType: "Soprano", minNote: 52, maxNote: 76, vibrato: "high", stability: "high", style: "belter", gender: "female",
+              brightness: 75, breathiness: 20, warmth: 60,
               description: "Vocal acrobat — runs, belts, and zero subtlety", funFact: "One note? You hear seventeen." },
             { name: "Sia", voiceType: "Soprano", minNote: 53, maxNote: 72, vibrato: "high", stability: "medium", style: "raw", gender: "female",
+              brightness: 65, breathiness: 35, warmth: 55,
               description: "Chandelier swinger — raw power and emotional chaos", funFact: "You feel emotions in 4K resolution" },
             { name: "Dolly Parton", voiceType: "Soprano", minNote: 55, maxNote: 72, vibrato: "high", stability: "high", style: "country", gender: "female",
+              brightness: 80, breathiness: 25, warmth: 65,
               description: "Country's queen — bright, twangy, and icon status", funFact: "9 to 5 describes your vocal work ethic" },
             { name: "Miley Cyrus", voiceType: "Mezzo-Soprano", minNote: 50, maxNote: 68, vibrato: "medium", stability: "medium", style: "raspy", gender: "female",
+              brightness: 55, breathiness: 40, warmth: 55,
               description: "Wrecking ball of rasp — evolved from Disney to rock goddess", funFact: "Your voice came in like a... well, you know" },
         ];
 
@@ -1686,6 +1844,17 @@
         let recordingTime = 0;
         let timerInterval = null;
         let animationId = null;
+        
+        // Meyda spectral analysis state
+        let meydaAnalyzer = null;
+        let spectralFeatures = {
+            spectralCentroid: [],    // Brightness (higher = brighter voice)
+            spectralRolloff: [],     // Where frequency energy drops off
+            spectralFlatness: [],    // Breathiness (higher = more breathy/noisy)
+            mfcc: [],                // Voice fingerprint coefficients
+            rms: [],                 // Volume/energy over time
+            zcr: []                  // Zero crossing rate (affects perceived texture)
+        };
 
         // DOM elements
         const visualizer = document.getElementById('visualizer');
@@ -1872,6 +2041,56 @@
                 ? Math.min(100, (segments.reduce((a, b) => a + b, 0) / segments.length) * 110)
                 : 50;
             
+            // ========== MEYDA SPECTRAL FEATURES ==========
+            let spectral = {
+                brightness: 50,        // 0-100: Dark to Bright
+                breathiness: 50,       // 0-100: Clean to Breathy
+                dynamicRange: 50,      // 0-100: Flat to Dynamic
+                warmth: 50,            // 0-100: Thin to Warm
+                avgMfcc: null          // For voice fingerprinting
+            };
+            
+            if (spectralFeatures.spectralCentroid.length > 10) {
+                // Brightness: normalized spectral centroid (higher = brighter voice like Taylor Swift)
+                const avgCentroid = spectralFeatures.spectralCentroid.reduce((a, b) => a + b, 0) / spectralFeatures.spectralCentroid.length;
+                // Typical voice centroid range: 500-4000 Hz, normalize to 0-100
+                spectral.brightness = Math.max(0, Math.min(100, (avgCentroid - 500) / 35));
+                
+                // Breathiness: spectral flatness (higher = more noise/breath in voice like Billie Eilish)
+                const avgFlatness = spectralFeatures.spectralFlatness.reduce((a, b) => a + b, 0) / spectralFeatures.spectralFlatness.length;
+                spectral.breathiness = Math.max(0, Math.min(100, avgFlatness * 300));
+                
+                // Dynamic range: variation in RMS energy (higher = more expressive like Adele)
+                if (spectralFeatures.rms.length > 10) {
+                    const rmsValues = spectralFeatures.rms;
+                    const rmsMin = Math.min(...rmsValues);
+                    const rmsMax = Math.max(...rmsValues);
+                    const rmsRange = rmsMax - rmsMin;
+                    spectral.dynamicRange = Math.max(0, Math.min(100, rmsRange * 500));
+                }
+                
+                // Warmth: derived from spectral rolloff (lower rolloff = warmer voice like Amy Winehouse)
+                const avgRolloff = spectralFeatures.spectralRolloff.reduce((a, b) => a + b, 0) / spectralFeatures.spectralRolloff.length;
+                // Invert: lower rolloff = higher warmth
+                spectral.warmth = Math.max(0, Math.min(100, 100 - (avgRolloff - 1000) / 50));
+                
+                // Average MFCC coefficients (voice fingerprint)
+                if (spectralFeatures.mfcc.length > 10) {
+                    const numCoeffs = spectralFeatures.mfcc[0].length;
+                    spectral.avgMfcc = new Array(numCoeffs).fill(0);
+                    spectralFeatures.mfcc.forEach(mfccFrame => {
+                        mfccFrame.forEach((val, i) => {
+                            spectral.avgMfcc[i] += val;
+                        });
+                    });
+                    spectral.avgMfcc = spectral.avgMfcc.map(v => v / spectralFeatures.mfcc.length);
+                }
+                
+                console.log('Spectral analysis:', spectral);
+            } else {
+                console.log('Not enough spectral data, using defaults');
+            }
+            
             // Determine voice type with more nuance
             let voiceType, voiceEmoji;
             if (avgMidi < 46) { voiceType = 'Bass'; voiceEmoji = '🎸'; }
@@ -1890,7 +2109,13 @@
                 breathControl: Math.round(breathControl),
                 voiceType, voiceEmoji,
                 sampleCount: filtered.length,
-                confidentSamples: confident.length
+                confidentSamples: confident.length,
+                // New spectral features
+                brightness: Math.round(spectral.brightness),
+                breathiness: Math.round(spectral.breathiness),
+                dynamicRange: Math.round(spectral.dynamicRange),
+                warmth: Math.round(spectral.warmth),
+                avgMfcc: spectral.avgMfcc
             };
         }
 
@@ -1915,6 +2140,16 @@
                 pitches = [];
                 pitchSamples = [];
                 recordingTime = 0;
+                
+                // Reset spectral features
+                spectralFeatures = {
+                    spectralCentroid: [],
+                    spectralRolloff: [],
+                    spectralFlatness: [],
+                    mfcc: [],
+                    rms: [],
+                    zcr: []
+                };
 
                 stream = await navigator.mediaDevices.getUserMedia({
                     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
@@ -1930,6 +2165,44 @@
 
                 const source = audioContext.createMediaStreamSource(stream);
                 source.connect(analyser);
+                
+                // Initialize Meyda analyzer for spectral features
+                if (typeof Meyda !== 'undefined') {
+                    try {
+                        meydaAnalyzer = Meyda.createMeydaAnalyzer({
+                            audioContext: audioContext,
+                            source: source,
+                            bufferSize: 2048,
+                            featureExtractors: [
+                                'spectralCentroid',
+                                'spectralRolloff', 
+                                'spectralFlatness',
+                                'mfcc',
+                                'rms',
+                                'zcr'
+                            ],
+                            callback: features => {
+                                if (features && isRecording) {
+                                    // Only collect when there's actual audio (rms > threshold)
+                                    if (features.rms > 0.01) {
+                                        spectralFeatures.spectralCentroid.push(features.spectralCentroid);
+                                        spectralFeatures.spectralRolloff.push(features.spectralRolloff);
+                                        spectralFeatures.spectralFlatness.push(features.spectralFlatness);
+                                        spectralFeatures.mfcc.push([...features.mfcc]);
+                                        spectralFeatures.rms.push(features.rms);
+                                        spectralFeatures.zcr.push(features.zcr);
+                                    }
+                                }
+                            }
+                        });
+                        meydaAnalyzer.start();
+                        console.log('Meyda analyzer started');
+                    } catch (meydaErr) {
+                        console.warn('Meyda initialization failed, continuing without spectral analysis:', meydaErr);
+                    }
+                } else {
+                    console.warn('Meyda not loaded, spectral analysis disabled');
+                }
 
                 isRecording = true;
                 recordBtn.className = 'record-btn recording';
@@ -1995,11 +2268,23 @@
             console.log('stopRecording called');
             console.log('pitchSamples length:', pitchSamples.length);
             console.log('pitches length:', pitches.length);
+            console.log('spectralFeatures samples:', spectralFeatures.spectralCentroid.length);
             
             isRecording = false;
 
             if (timerInterval) clearInterval(timerInterval);
             if (animationId) cancelAnimationFrame(animationId);
+            
+            // Stop Meyda analyzer
+            if (meydaAnalyzer) {
+                try {
+                    meydaAnalyzer.stop();
+                    console.log('Meyda analyzer stopped');
+                } catch (e) {
+                    console.warn('Error stopping Meyda:', e);
+                }
+            }
+            
             if (stream) stream.getTracks().forEach(track => track.stop());
             if (audioContext) audioContext.close();
 
@@ -2110,65 +2395,101 @@
             // Score each famous singer based on similarity to user's voice
             const scored = FAMOUS_SINGERS.map(singer => {
                 let score = 0;
+                let spectralBonus = 0;
                 
-                // Voice type match (most important - 40 points)
+                // Voice type match (most important - 30 points, reduced from 40)
                 if (singer.voiceType === m.voiceType) {
-                    score += 40;
+                    score += 30;
                 } else {
                     // Adjacent voice types get partial credit
                     const voiceOrder = ['Bass', 'Baritone', 'Tenor', 'Alto', 'Mezzo-Soprano', 'Soprano'];
                     const userIdx = voiceOrder.indexOf(m.voiceType);
                     const singerIdx = voiceOrder.indexOf(singer.voiceType);
                     const distance = Math.abs(userIdx - singerIdx);
-                    if (distance === 1) score += 20;
+                    if (distance === 1) score += 15;
                     else if (distance === 2) score += 5;
-                    // More than 2 away = no points
                 }
                 
-                // Range overlap (25 points max)
+                // Range overlap (20 points max)
                 const userRange = m.maxMidi - m.minMidi;
                 const singerRange = singer.maxNote - singer.minNote;
                 const overlap = Math.min(m.maxMidi, singer.maxNote) - Math.max(m.minMidi, singer.minNote);
                 const overlapPercent = Math.max(0, overlap / Math.max(userRange, singerRange));
-                score += overlapPercent * 25;
+                score += overlapPercent * 20;
                 
-                // Comfort zone alignment (15 points max)
+                // Comfort zone alignment (10 points max)
                 const comfortOverlap = Math.min(m.comfortHigh, singer.maxNote) - Math.max(m.comfortLow, singer.minNote);
                 const comfortScore = Math.max(0, comfortOverlap / singerRange);
-                score += comfortScore * 15;
+                score += comfortScore * 10;
                 
-                // Vibrato match (10 points)
+                // Vibrato match (8 points)
                 const userVibrato = m.vibratoPresence > 50 ? 'high' : m.vibratoPresence > 25 ? 'medium' : 'low';
-                if (singer.vibrato === userVibrato) score += 10;
+                if (singer.vibrato === userVibrato) score += 8;
                 else if (
                     (singer.vibrato === 'medium' && (userVibrato === 'high' || userVibrato === 'low')) ||
                     (userVibrato === 'medium' && (singer.vibrato === 'high' || singer.vibrato === 'low'))
-                ) score += 5;
+                ) score += 4;
                 
-                // Stability match (10 points)
+                // Stability match (7 points)
                 const userStability = m.stability > 65 ? 'high' : m.stability > 40 ? 'medium' : 'low';
-                if (singer.stability === userStability) score += 10;
-                else if (
-                    (singer.stability === 'medium') || (userStability === 'medium')
-                ) score += 5;
+                if (singer.stability === userStability) score += 7;
+                else if ((singer.stability === 'medium') || (userStability === 'medium')) score += 3;
                 
-                // Bonus for range span similarity
+                // ========== NEW: SPECTRAL FEATURE MATCHING (25 points total) ==========
+                // These are the timbre characteristics that make voices sound similar
+                
+                // Brightness match (10 points) - Bright vs Dark voice
+                // Taylor Swift = bright (70), Amy Winehouse = dark (35)
+                if (m.brightness !== undefined && singer.brightness !== undefined) {
+                    const brightnessDiff = Math.abs(m.brightness - singer.brightness);
+                    if (brightnessDiff < 10) spectralBonus += 10;
+                    else if (brightnessDiff < 20) spectralBonus += 7;
+                    else if (brightnessDiff < 35) spectralBonus += 4;
+                    else if (brightnessDiff < 50) spectralBonus += 2;
+                }
+                
+                // Breathiness match (8 points) - Airy vs Clean voice
+                // Billie Eilish = breathy (85), Celine Dion = clean (20)
+                if (m.breathiness !== undefined && singer.breathiness !== undefined) {
+                    const breathDiff = Math.abs(m.breathiness - singer.breathiness);
+                    if (breathDiff < 15) spectralBonus += 8;
+                    else if (breathDiff < 25) spectralBonus += 5;
+                    else if (breathDiff < 40) spectralBonus += 3;
+                    else if (breathDiff < 55) spectralBonus += 1;
+                }
+                
+                // Warmth match (7 points) - Warm/Rich vs Thin voice  
+                // Amy Winehouse = warm (90), Ariana Grande = lighter (45)
+                if (m.warmth !== undefined && singer.warmth !== undefined) {
+                    const warmthDiff = Math.abs(m.warmth - singer.warmth);
+                    if (warmthDiff < 12) spectralBonus += 7;
+                    else if (warmthDiff < 22) spectralBonus += 5;
+                    else if (warmthDiff < 35) spectralBonus += 3;
+                    else if (warmthDiff < 50) spectralBonus += 1;
+                }
+                
+                score += spectralBonus;
+                
+                // Bonus for range span similarity (5 points)
                 const rangeDiff = Math.abs(userRange - singerRange);
                 if (rangeDiff < 3) score += 5;
                 else if (rangeDiff < 6) score += 2;
                 
-                return { ...singer, score: Math.round(score) };
+                // Track if spectral data was used for display
+                const usedSpectral = spectralBonus > 0;
+                
+                return { ...singer, score: Math.round(score), spectralBonus: Math.round(spectralBonus), usedSpectral };
             }).sort((a, b) => b.score - a.score);
             
             // Return top 3 matches
             const top3 = scored.slice(0, 3);
             
-            // Add match quality labels
+            // Add match quality labels (adjusted thresholds for new max ~100)
             return top3.map((match, index) => {
                 let matchQuality;
-                if (match.score >= 75) matchQuality = 'Uncanny';
-                else if (match.score >= 60) matchQuality = 'Strong';
-                else if (match.score >= 45) matchQuality = 'Decent';
+                if (match.score >= 80) matchQuality = 'Uncanny';
+                else if (match.score >= 65) matchQuality = 'Strong';
+                else if (match.score >= 50) matchQuality = 'Decent';
                 else matchQuality = 'Loose';
                 
                 return {
@@ -2410,6 +2731,33 @@
             // Calculate meter position (inverted because 1 = best, 100 = worst)
             const meterPosition = data.feedback.suckScore;
             
+            // Check if spectral analysis was used
+            const hasSpectral = data.metrics.brightness !== undefined && data.metrics.brightness !== 50;
+            
+            // Timbre descriptions
+            function getTimbreDesc(value, type) {
+                if (type === 'brightness') {
+                    if (value > 70) return 'Bright';
+                    if (value > 55) return 'Clear';
+                    if (value > 40) return 'Balanced';
+                    if (value > 25) return 'Warm';
+                    return 'Dark';
+                }
+                if (type === 'breathiness') {
+                    if (value > 70) return 'Airy';
+                    if (value > 50) return 'Soft';
+                    if (value > 30) return 'Balanced';
+                    return 'Clean';
+                }
+                if (type === 'warmth') {
+                    if (value > 75) return 'Rich';
+                    if (value > 55) return 'Warm';
+                    if (value > 40) return 'Balanced';
+                    return 'Light';
+                }
+                return '';
+            }
+            
             // Build doppelganger HTML
             let doppelgangerHtml = '';
             if (data.doppelgangers && data.doppelgangers.length > 0) {
@@ -2418,11 +2766,38 @@
                 
                 const matchEmojis = { 'Uncanny': '🎯', 'Strong': '⭐', 'Decent': '👍', 'Loose': '🤔' };
                 
+                // Timbre section HTML (only if spectral data available)
+                let timbreHtml = '';
+                if (hasSpectral) {
+                    timbreHtml = `
+                        <div class="timbre-section">
+                            <h4>🎨 Voice Character <span class="spectral-badge">Spectral Analysis</span></h4>
+                            <div class="timbre-grid">
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Brightness</div>
+                                    <div class="timbre-bar"><div class="timbre-fill brightness" style="width: ${data.metrics.brightness}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.brightness, 'brightness')}</div>
+                                </div>
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Breathiness</div>
+                                    <div class="timbre-bar"><div class="timbre-fill breathiness" style="width: ${data.metrics.breathiness}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.breathiness, 'breathiness')}</div>
+                                </div>
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Warmth</div>
+                                    <div class="timbre-bar"><div class="timbre-fill warmth" style="width: ${data.metrics.warmth}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.warmth, 'warmth')}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 doppelgangerHtml = `
                     <div class="doppelganger-container">
                         <div class="doppelganger-header">
                             <div class="doppelganger-title">🎭 VOCAL DOPPELGÄNGER</div>
-                            <div class="doppelganger-subtitle">You sound like...</div>
+                            <div class="doppelganger-subtitle">You sound like...${hasSpectral ? ' <span class="spectral-badge">✨ Timbre Matched</span>' : ''}</div>
                         </div>
                         <div class="doppelganger-primary">
                             <div class="match-emoji">${matchEmojis[primary.matchQuality] || '🎤'}</div>
@@ -2442,6 +2817,7 @@
                             `).join('')}
                         </div>
                         ` : ''}
+                        ${timbreHtml}
                     </div>
                 `;
             }
@@ -2880,6 +3256,16 @@
                 pitchSamples = [];
                 recordingTime = 0;
                 
+                // Reset spectral features
+                spectralFeatures = {
+                    spectralCentroid: [],
+                    spectralRolloff: [],
+                    spectralFlatness: [],
+                    mfcc: [],
+                    rms: [],
+                    zcr: []
+                };
+                
                 trackEvent('practice_recording_started', 'voice_analysis', selectedSong?.title || 'unknown');
 
                 stream = await navigator.mediaDevices.getUserMedia({
@@ -2896,6 +3282,31 @@
 
                 const source = audioContext.createMediaStreamSource(stream);
                 source.connect(analyser);
+                
+                // Initialize Meyda analyzer for spectral features
+                if (typeof Meyda !== 'undefined') {
+                    try {
+                        meydaAnalyzer = Meyda.createMeydaAnalyzer({
+                            audioContext: audioContext,
+                            source: source,
+                            bufferSize: 2048,
+                            featureExtractors: ['spectralCentroid', 'spectralRolloff', 'spectralFlatness', 'mfcc', 'rms', 'zcr'],
+                            callback: features => {
+                                if (features && isRecording && features.rms > 0.01) {
+                                    spectralFeatures.spectralCentroid.push(features.spectralCentroid);
+                                    spectralFeatures.spectralRolloff.push(features.spectralRolloff);
+                                    spectralFeatures.spectralFlatness.push(features.spectralFlatness);
+                                    spectralFeatures.mfcc.push([...features.mfcc]);
+                                    spectralFeatures.rms.push(features.rms);
+                                    spectralFeatures.zcr.push(features.zcr);
+                                }
+                            }
+                        });
+                        meydaAnalyzer.start();
+                    } catch (meydaErr) {
+                        console.warn('Meyda initialization failed:', meydaErr);
+                    }
+                }
 
                 isRecording = true;
                 practiceRecordBtn.className = 'record-btn recording';
@@ -2956,6 +3367,16 @@
 
             if (timerInterval) clearInterval(timerInterval);
             if (animationId) cancelAnimationFrame(animationId);
+            
+            // Stop Meyda analyzer
+            if (meydaAnalyzer) {
+                try {
+                    meydaAnalyzer.stop();
+                } catch (e) {
+                    console.warn('Error stopping Meyda:', e);
+                }
+            }
+            
             if (stream) stream.getTracks().forEach(track => track.stop());
             if (audioContext) audioContext.close();
 
@@ -3112,6 +3533,33 @@
 
             const meterPosition = data.feedback.suckScore;
             
+            // Check if spectral analysis was used
+            const hasSpectral = data.metrics.brightness !== undefined && data.metrics.brightness !== 50;
+            
+            // Timbre descriptions
+            function getTimbreDesc(value, type) {
+                if (type === 'brightness') {
+                    if (value > 70) return 'Bright';
+                    if (value > 55) return 'Clear';
+                    if (value > 40) return 'Balanced';
+                    if (value > 25) return 'Warm';
+                    return 'Dark';
+                }
+                if (type === 'breathiness') {
+                    if (value > 70) return 'Airy';
+                    if (value > 50) return 'Soft';
+                    if (value > 30) return 'Balanced';
+                    return 'Clean';
+                }
+                if (type === 'warmth') {
+                    if (value > 75) return 'Rich';
+                    if (value > 55) return 'Warm';
+                    if (value > 40) return 'Balanced';
+                    return 'Light';
+                }
+                return '';
+            }
+            
             // Build doppelganger HTML
             let doppelgangerHtml = '';
             if (data.doppelgangers && data.doppelgangers.length > 0) {
@@ -3120,11 +3568,38 @@
                 
                 const matchEmojis = { 'Uncanny': '🎯', 'Strong': '⭐', 'Decent': '👍', 'Loose': '🤔' };
                 
+                // Timbre section HTML
+                let timbreHtml = '';
+                if (hasSpectral) {
+                    timbreHtml = `
+                        <div class="timbre-section">
+                            <h4>🎨 Voice Character <span class="spectral-badge">Spectral Analysis</span></h4>
+                            <div class="timbre-grid">
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Brightness</div>
+                                    <div class="timbre-bar"><div class="timbre-fill brightness" style="width: ${data.metrics.brightness}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.brightness, 'brightness')}</div>
+                                </div>
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Breathiness</div>
+                                    <div class="timbre-bar"><div class="timbre-fill breathiness" style="width: ${data.metrics.breathiness}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.breathiness, 'breathiness')}</div>
+                                </div>
+                                <div class="timbre-item">
+                                    <div class="timbre-label">Warmth</div>
+                                    <div class="timbre-bar"><div class="timbre-fill warmth" style="width: ${data.metrics.warmth}%"></div></div>
+                                    <div class="timbre-value">${getTimbreDesc(data.metrics.warmth, 'warmth')}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 doppelgangerHtml = `
                     <div class="doppelganger-container">
                         <div class="doppelganger-header">
                             <div class="doppelganger-title">🎭 VOCAL DOPPELGÄNGER</div>
-                            <div class="doppelganger-subtitle">You sound like...</div>
+                            <div class="doppelganger-subtitle">You sound like...${hasSpectral ? ' <span class="spectral-badge">✨ Timbre Matched</span>' : ''}</div>
                         </div>
                         <div class="doppelganger-primary">
                             <div class="match-emoji">${matchEmojis[primary.matchQuality] || '🎤'}</div>
@@ -3144,6 +3619,7 @@
                             `).join('')}
                         </div>
                         ` : ''}
+                        ${timbreHtml}
                     </div>
                 `;
             }
