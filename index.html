@@ -1786,6 +1786,10 @@
         }
 
         function stopRecording() {
+            console.log('stopRecording called');
+            console.log('pitchSamples length:', pitchSamples.length);
+            console.log('pitches length:', pitches.length);
+            
             isRecording = false;
 
             if (timerInterval) clearInterval(timerInterval);
@@ -1795,12 +1799,17 @@
 
             recordSection.style.display = 'none';
             analyzing.style.display = 'block';
+            console.log('About to call analyzeVoice in 500ms');
 
             setTimeout(analyzeVoice, 500);
         }
 
         function analyzeVoice() {
+            console.log('analyzeVoice called');
+            console.log('pitchSamples:', pitchSamples.length);
+            
             if (pitchSamples.length < 20) {
+                console.log('Not enough samples, showing error');
                 analyzing.style.display = 'none';
                 recordSection.style.display = 'block';
                 instructions.style.display = 'block';
@@ -1817,6 +1826,7 @@
             const metrics = calculateAdvancedMetrics(pitchSamples);
             
             if (!metrics) {
+                console.log('metrics is null in analyzeVoice, showing error');
                 analyzing.style.display = 'none';
                 recordSection.style.display = 'block';
                 instructions.style.display = 'block';
@@ -1829,6 +1839,8 @@
                 showError('Could not analyze your voice clearly. Try singing more sustained notes (less talking, more "ahhh"). Move closer to the mic!');
                 return;
             }
+            
+            console.log('metrics calculated successfully:', metrics);
 
             // Score songs using comfort zone for better matches
             const scored = SONG_DATABASE.map(song => {
@@ -1869,6 +1881,8 @@
 
             // Generate personality-filled feedback
             const feedback = generateFeedback(metrics);
+            console.log('feedback generated:', feedback);
+            console.log('About to call showResults');
 
             showResults({
                 metrics,
@@ -2062,6 +2076,7 @@
         }
 
         function showResults(data) {
+            console.log('showResults called with:', data);
             analyzing.style.display = 'none';
             
             // Track analysis completion with key metrics
@@ -2244,6 +2259,7 @@
             `;
 
             results.className = 'results show';
+            results.style.display = 'block';  // Explicitly show (overrides showSection hiding)
         }
 
         function resetApp() {
